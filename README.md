@@ -62,6 +62,18 @@ What follows is a not-very-sorted train of though on where the plugin is at and 
 could see myself taking it one day, provided I find the time.
 Pull requests tackling one of these areas of course very welcome.
 
+## Issues
+
+A note on the extraction. Highlights in pdfs are somewhat difficult to parse
+(as are most things in them). Sometimes they contain the selected text that is written on the
+page, sometimes they contain the annotators thoughts as a note, sometimes they contain nothing.
+This plugin makes an effort to find the right combination and extract the written words,
+as well as any additional notes made - but things *will* slip through or extract weirdly every now
+and again.
+
+The easiest extraction is provided if your program writes the selection itself into the highlight
+content, because then we can just use that. It is harder to parse if it does not.
+
 ## Roadmap:
 
 - [x] extracts highlights and annotations from a doc file (e.g. using PyMuPDF)
@@ -79,6 +91,7 @@ Pull requests tackling one of these areas of course very welcome.
     - [ ] colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly
 - [ ] make invoking the command run a query if corresponding option provided (or whatever) in pubs syntax and use resulting papers
     - [ ] confirm for many papers?
+- [ ] warning when the amount of annotations in file is different than the amount extracted?
 
 ## Things that would also be nice in pubs in general and don't really belong in this repository
 

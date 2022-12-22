@@ -129,12 +129,19 @@ class ExtractPlugin(PapersPlugin):
         with fitz.Document(filename) as doc:
             for page in doc:
                 for annot in page.annots():
-                    content = annot.get_text() or annot.info["content"].replace(
-                        "\n", ""
-                    )
+                    content = self._retrieve_annotation_content(page, annot)
                     if content:
                         annotations.append(f"[{(page.number or 0) + 1}] {content}")
         return annotations
+
+    def _retrieve_annotation_content(self, page, annotation):
+        content = annotation.info["content"].replace("\n", " ")
+        written = page.get_textbox(annotation.rect).replace("\n", " ")
+        if written in content:
+            return content
+        elif content:
+            return f"{written}\nNote: {content}"
+        return written
 
     def _to_stdout(self, annotated_papers):
         """Write annotations to stdout.
