@@ -133,7 +133,7 @@ class ExtractPlugin(PapersPlugin):
                         "\n", ""
                     )
                     if content:
-                        annotations.append(f"[{page.number}] {content}")
+                        annotations.append(f"[{(page.number or 0) + 1}] {content}")
         return annotations
 
     def _to_stdout(self, annotated_papers):
