@@ -39,7 +39,7 @@ class ExtractPlugin(PapersPlugin):
         # e.g. `> [{page}] {annotation}`
         # or `:: {annotation} :: {page} ::`
         # and so on
-        self.onimport = conf["plugins"].get("extract", {}).get("onimport", False)
+        self.on_import = conf["plugins"].get("extract", {}).get("on_import", False)
         self.minimum_similarity = float(conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75))
 
     def update_parser(self, subparsers, conf):
@@ -226,7 +226,7 @@ class ExtractPlugin(PapersPlugin):
 def modify_event(event):
     if ExtractPlugin.is_loaded():
         plg = ExtractPlugin.get_instance()
-        if plg.onimport:
+        if plg.on_import:
             all_annotations = plg.extract([event.citekey])
             if all_annotations[0][1]:
                 plg._to_notes(all_annotations, plg.note_extension)
