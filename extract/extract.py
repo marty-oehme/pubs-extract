@@ -90,7 +90,7 @@ class ExtractPlugin(PapersPlugin):
             try:
                 papers_annotated.append((paper, self._get_annotations(file)))
             except fitz.FileDataError as e:
-                print(f"ERROR: Document {file} is broken: {e}")
+                self.ui.error(f"Document {file} is broken: {e}")
         return papers_annotated
 
     def _gather_papers(self, citekeys):
@@ -102,7 +102,7 @@ class ExtractPlugin(PapersPlugin):
     def _get_file(self, paper):
         path = self.broker.real_docpath(paper.docpath)
         if not path:
-            self.ui.error(f"{paper.citekey} has no valid document.")
+            self.ui.warning(f"{paper.citekey} has no valid document.")
         return path
 
     def _get_annotations(self, filename):
@@ -118,14 +118,16 @@ class ExtractPlugin(PapersPlugin):
         return annotations
 
     def _to_stdout(self, annotated_papers):
+        output = ""
         for contents in annotated_papers:
             paper = contents[0]
             annotations = contents[1]
             if annotations:
-                print(f"{paper.citekey}")
+                output+=f"{paper.citekey}\n"
                 for annot in annotations:
-                    print(f'> "{annot}"')
-                print("")
+                    output+=f'> "{annot}"\n'
+                output+="\n"
+        print(output)
 
     def _to_notes(self, conf, annotated_papers, edit=False):
         for contents in annotated_papers:
