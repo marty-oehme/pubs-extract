@@ -1,4 +1,5 @@
 import os
+import re
 import argparse
 
 import fitz
@@ -46,7 +47,10 @@ class ExtractPlugin(PapersPlugin):
         self.formatting = (
             conf["plugins"]
             .get("extract", {})
-            .get("formatting", "> {quote} [{page}]\nNote: {note}")
+            .get(
+                "formatting",
+                "[{page}]{newline}{quote_begin}> {quote}{newline}{quote_end}{note_begin}Note: {note}{note_end}",
+            )
         )
 
     def update_parser(self, subparsers, conf):
@@ -139,18 +143,34 @@ class ExtractPlugin(PapersPlugin):
             for page in doc:
                 for annot in page.annots():
                     quote, note = self._retrieve_annotation_content(page, annot)
-
-                    replacements = [
-                        ("{quote}", quote),
-                        ("{note}", note),
-                        ("{page}", str(page.number)),
-                    ]
-                    output = self.formatting
-                    for rep in replacements:
-                        output = output.replace(rep[0], rep[1])
-
-                    annotations.append(output)
+                    annotations.append(
+                        self._format_annotation(quote, note, page.number or 0)
+                    )
         return annotations
+
+    def _format_annotation(self, quote, note, pagenumber=0):
+        output = self.formatting
+        replacements = {
+            "{quote}": quote,
+            "{note}": note,
+            "{page}": str(pagenumber),
+            "{newline}": "\n",
+        }
+        if note == "":
+            output = re.sub(r"{note_begin}.*{note_end}", "", output)
+        if quote == "":
+            output = re.sub(r"{quote_begin}.*{quote_end}", "", output)
+        output = re.sub(r"{note_begin}", "", output)
+        output = re.sub(r"{note_end}", "", output)
+        output = re.sub(r"{quote_begin}", "", output)
+        output = re.sub(r"{quote_end}", "", output)
+        pattern = re.compile(
+            "|".join(
+                [re.escape(k) for k in sorted(replacements, key=len, reverse=True)]
+            ),
+            flags=re.DOTALL,
+        )
+        return pattern.sub(lambda x: replacements[x.group(0)], output)
 
     def _retrieve_annotation_content(self, page, annotation):
         """Gets the text content of an annotation.

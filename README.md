@@ -20,20 +20,38 @@ active = extract
 
 [[extract]]
 on_import = False
-quote_prefix = "> "
-note_prefix = "Note: "
+formatting = "[{page}]{newline}{quote_begin}> {quote}{newline}{quote_end}{note_begin}Note: {note}{note_end}"
 minimum_similarity = 0.75
 ```
 
 If `on_import` is `True` extraction is automatically run whenever a new document is added to the library,
 if false extraction has to be handled manually.
 
-`quote_prefix` and `note_prefix` define what is put in front of the quoted part of an annotation and the annotator's own notes respectively, so that ultimately a note (by default) looks like this:
+`formatting` takes a string with a variety of template options. You can use any of the following:
+
+- `{page}`: The page number the annotation was found on.
+- `{quote}`: The actual quoted string (i.e. highlighted).
+- `{note}`: The annotation note (i.e. addded reader).
+- `{quote_begin}`: Mark the area that begins a quotation. Useful to get rid of prefixes or suffixes if no quotation exists. Requires a corresponding `{quote_end}` to be set after.
+- `{note_begin}`: Same idea for the note area. Requires a corresponding `{note_end}` to be set after.
+
+For example, the default formatting string will result in this output:
 
 ```markdown
-[4] > came “urban rights” caused collective outrage. Thus, through- out 2007 and 2008, protestors in towns and villages across the Nile Delta poured into the streets to rally over cuts in water flow. Deployment of massive riot police could not stop
+[4]
+> came “urban rights” caused collective outrage. Thus, through- out 2007 and 2008, protestors in towns and villages across the Nile Delta poured into the streets to rally over cuts in water flow. Deployment of massive riot police could not stop
 Note: Often illegally connected to network, ‘revolution of the thirsty’
 ```
+
+The formatting string `{quote_begin}Quote: {quote}{page}{newline}{quote_end}{note_begin}Note: {note}{note_end}`
+will result in the following output:
+
+```markdown
+Quote: came “urban rights” caused collective outrage. Thus, through- out 2007 and 2008, protestors in towns and villages across the Nile Delta poured into the streets to rally over cuts in water flow. Deployment of massive riot police could not stop [4]
+Note: Often illegally connected to network, ‘revolution of the thirsty’
+```
+
+Note, however, that in this example the page number if *only* displayed if the annotation contains a quote.
 
 `minimum_similarity` sets the required similarity of an annotation's note and written words to be viewed
 as one. Any annotation that has both and is *under* the minimum similarity will be added in the following form:
