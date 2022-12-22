@@ -2,6 +2,7 @@ import os
 import argparse
 
 import fitz
+import Levenshtein
 
 from pubs.plugins import PapersPlugin
 from pubs.events import DocAddEvent, NoteEvent
@@ -39,6 +40,7 @@ class ExtractPlugin(PapersPlugin):
         # or `:: {annotation} :: {page} ::`
         # and so on
         self.onimport = conf["plugins"].get("extract", {}).get("onimport", False)
+        self.minimum_similarity = conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75)
 
     def update_parser(self, subparsers, conf):
         """Allow the usage of the pubs extract subcommand"""
@@ -134,13 +136,22 @@ class ExtractPlugin(PapersPlugin):
                         annotations.append(f"[{(page.number or 0) + 1}] {content}")
         return annotations
 
-    def _retrieve_annotation_content(self, page, annotation):
+    def _retrieve_annotation_content(self, page, annotation, connector = "\nNote: "):
+        """Gets the text content of an annotation.
+
+        Returns the actual content of an annotation. Sometimes
+        that is only the written words, sometimes that is only
+        annotation notes, sometimes it is both. Runs a similarity
+        comparison between strings to find out whether they
+        should both be included or are doubling up.
+        """
         content = annotation.info["content"].replace("\n", " ")
         written = page.get_textbox(annotation.rect).replace("\n", " ")
-        if written in content:
+
+        if Levenshtein.ratio(content,written) > self.minimum_similarity:
             return content
         elif content:
-            return f"{written}\nNote: {content}"
+            return f"{written}{connector}{content}"
         return written
 
     def _to_stdout(self, annotated_papers):
