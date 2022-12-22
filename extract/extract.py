@@ -6,9 +6,8 @@ import argparse
 
 import fitz
 
-# from ... import uis
 from pubs.plugins import PapersPlugin
-from pubs.events import DocAddEvent, DocRemoveEvent
+from pubs.events import DocAddEvent, NoteEvent
 
 from pubs import repo
 from pubs.utils import resolve_citekey_list
@@ -143,7 +142,7 @@ class ExtractPlugin(PapersPlugin):
                 write_file(notepath, output, 'w')
                 if edit is True:
                     self.ui.edit_file(notepath, temporary=False)
-                # TODO implement NoteEvent(citekey).send()
+                NoteEvent(paper.citekey).send()
 
 
 @DocAddEvent.listen()
