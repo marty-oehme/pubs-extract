@@ -75,15 +75,15 @@ class ExtractPlugin(PapersPlugin):
         )
         if not citekeys:
             return
-        papers = self._gather_papers(citekeys)
-        all_annotations = self.extract(papers)
+        all_annotations = self.extract(citekeys)
         if args.write:
             self._to_notes(conf, all_annotations, args.edit)
         else:
             self._to_stdout(all_annotations)
         self.repository.close()
 
-    def extract(self, papers):
+    def extract(self, citekeys):
+        papers = self._gather_papers(citekeys)
         papers_annotated = []
         for paper in papers:
             file = self._get_file(paper)
