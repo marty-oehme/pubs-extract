@@ -40,7 +40,7 @@ class ExtractPlugin(PapersPlugin):
         # or `:: {annotation} :: {page} ::`
         # and so on
         self.onimport = conf["plugins"].get("extract", {}).get("onimport", False)
-        self.minimum_similarity = conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75)
+        self.minimum_similarity = float(conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75))
 
     def update_parser(self, subparsers, conf):
         """Allow the usage of the pubs extract subcommand"""
