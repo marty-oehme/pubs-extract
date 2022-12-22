@@ -8,7 +8,7 @@ import fitz
 
 # from ... import uis
 from pubs.plugins import PapersPlugin
-from pubs.events import PaperChangeEvent, PostCommandEvent
+from pubs.events import DocAddEvent, DocRemoveEvent
 
 from pubs import repo
 from pubs.utils import resolve_citekey_list
@@ -30,13 +30,13 @@ class ExtractPlugin(PapersPlugin):
     description = "Extract annotations from pubs documents"
 
     def __init__(self, conf, ui):
-        pass
         self.ui = ui
+        self.conf = conf
         self.repository = repo.Repository(conf)
         self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
         self.broker = self.repository.databroker
 
-        self.quiet = conf["plugins"].get("extract", {}).get("quiet", False)
+        self.onimport = conf["plugins"].get("extract", {}).get("onimport", False)
         # self.manual = conf['plugins'].get('git', {}).get('manual', False)
         # self.force_color = conf['plugins'].get('git', {}).get('force_color', True)
         # self.list_of_changes = []
@@ -77,7 +77,7 @@ class ExtractPlugin(PapersPlugin):
             return
         all_annotations = self.extract(citekeys)
         if args.write:
-            self._to_notes(conf, all_annotations, args.edit)
+            self._to_notes(all_annotations, conf["main"]["note_extension"], args.edit)
         else:
             self._to_stdout(all_annotations)
         self.repository.close()
@@ -129,13 +129,13 @@ class ExtractPlugin(PapersPlugin):
                 output+="\n"
         print(output)
 
-    def _to_notes(self, conf, annotated_papers, edit=False):
+    def _to_notes(self, annotated_papers, note_extension="txt", edit=False):
         for contents in annotated_papers:
             paper = contents[0]
             annotations = contents[1]
             if annotations:
                 notepath = self.broker.real_notepath(
-                    paper.citekey, conf["main"]["note_extension"]
+                    paper.citekey, note_extension
                 )
                 output = "# Annotations\n\n"
                 for annotation in annotations:
@@ -146,31 +146,13 @@ class ExtractPlugin(PapersPlugin):
                 # TODO implement NoteEvent(citekey).send()
 
 
-@PaperChangeEvent.listen()
-def paper_change_event(event):
-    """When a paper is changed, commit the changes to the directory."""
-    pass
-    # if ExtractPlugin.is_loaded():
-    #     git = ExtractPlugin.get_instance()
-    #     if not git.manual:
-    #         event_desc = event.description
-    #         for a, b in [('\\', '\\\\'), ('"', '\\"'), ('$', '\\$'), ('`', '\\`')]:
-    #             event_desc = event_desc.replace(a, b)
-    #         git.list_of_changes.append(event_desc)
+@DocAddEvent.listen()
+def modify_event(event):
+    if ExtractPlugin.is_loaded():
+        plg = ExtractPlugin.get_instance()
+        if plg.onimport:
+            all_annotations = plg.extract([event.citekey])
+            if all_annotations[0][1]:
+                plg._to_notes(all_annotations, plg.conf["main"]["note_extension"])
+                plg.ui.info(f"Imported {event.citekey} annotations.")
 
-
-@PostCommandEvent.listen()
-def git_commit(event):
-    pass
-    # if ExtractPlugin.is_loaded():
-    #     try:
-    #         extract = ExtractPlugin.get_instance()
-    #         if len(extract.list_of_changes) > 0:
-    #             if not extract.manual:
-    #                 title = ' '.join(sys.argv) + '\n'
-    #                 message = '\n'.join([title] + extract.list_of_changes)
-    #
-    #                 extract.shell('add .')
-    #                 extract.shell('commit -F-', message.encode('utf-8'))
-    #     except RuntimeError as exc:
-    #         uis.get_ui().warning(exc.args[0])
