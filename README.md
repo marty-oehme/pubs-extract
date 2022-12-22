@@ -20,11 +20,20 @@ active = extract
 
 [[extract]]
 on_import = False
+quote_prefix = "> "
+note_prefix = "Note: "
 minimum_similarity = 0.75
 ```
 
 If `on_import` is `True` extraction is automatically run whenever a new document is added to the library,
 if false extraction has to be handled manually.
+
+`quote_prefix` and `note_prefix` define what is put in front of the quoted part of an annotation and the annotator's own notes respectively, so that ultimately a note (by default) looks like this:
+
+```markdown
+[4] > came “urban rights” caused collective outrage. Thus, through- out 2007 and 2008, protestors in towns and villages across the Nile Delta poured into the streets to rally over cuts in water flow. Deployment of massive riot police could not stop
+Note: Often illegally connected to network, ‘revolution of the thirsty’
+```
 
 `minimum_similarity` sets the required similarity of an annotation's note and written words to be viewed
 as one. Any annotation that has both and is *under* the minimum similarity will be added in the following form:

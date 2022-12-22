@@ -41,6 +41,8 @@ class ExtractPlugin(PapersPlugin):
         # and so on
         self.on_import = conf["plugins"].get("extract", {}).get("on_import", False)
         self.minimum_similarity = float(conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75))
+        self.highlight_prefix = conf["plugins"].get("extract", {}).get("quote_prefix", "> ")
+        self.note_prefix = conf["plugins"].get("extract", {}).get("note_prefix", "Note: ")
 
     def update_parser(self, subparsers, conf):
         """Allow the usage of the pubs extract subcommand"""
@@ -131,7 +133,7 @@ class ExtractPlugin(PapersPlugin):
         with fitz.Document(filename) as doc:
             for page in doc:
                 for annot in page.annots():
-                    content = self._retrieve_annotation_content(page, annot)
+                    content = self._retrieve_annotation_content(page, annot, self.highlight_prefix, self.note_prefix)
                     if content:
                         annotations.append(f"[{(page.number or 0) + 1}] {content}")
         return annotations
