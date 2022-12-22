@@ -35,6 +35,10 @@ class ExtractPlugin(PapersPlugin):
         self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
         self.broker = self.repository.databroker
 
+        # TODO implement custom annotation formatting, akin to main config citekey format
+        # e.g. `> [{page}] {annotation}`
+        # or `:: {annotation} :: {page} ::`
+        # and so on
         self.onimport = conf["plugins"].get("extract", {}).get("onimport", False)
         # self.manual = conf['plugins'].get('git', {}).get('manual', False)
         # self.force_color = conf['plugins'].get('git', {}).get('force_color', True)
@@ -42,7 +46,6 @@ class ExtractPlugin(PapersPlugin):
 
     def update_parser(self, subparsers, conf):
         """Allow the usage of the pubs git subcommand"""
-        # TODO option for quiet/loud mode.
         # TODO option for ignoring missing documents or erroring.
         extract_parser = subparsers.add_parser(self.name, help=self.description)
         extract_parser.add_argument(
