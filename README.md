@@ -10,6 +10,33 @@ Put `extract` folder in your pubs `plugs` directory.
 
 Then add `extract` to your plugin list in the pubs configuration file.
 
+## Configuration:
+
+In your pubs configuration file:
+
+```ini
+[plugins]
+active = extract
+
+[[extract]]
+on_import = False
+minimum_similarity = 0.75
+```
+
+If `on_import` is `True` extraction is automatically run whenever a new document is added to the library,
+if false extraction has to be handled manually.
+
+`minimum_similarity` sets the required similarity of an annotation's note and written words to be viewed
+as one. Any annotation that has both and is *under* the minimum similarity will be added in the following form:
+
+```markdown
+> [13] my annotation
+Note: my additional thoughts
+```
+
+That is, the extractor detects additional written words by whoever annotated and adds them to the extraction.
+The option generally should not take too much tuning, but it is there if you need it.
+
 ## Usage:
 
 `pubs extract [-h|-w|-e] <citekeys>`
