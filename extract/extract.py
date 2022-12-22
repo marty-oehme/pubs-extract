@@ -59,6 +59,13 @@ class ExtractPlugin(PapersPlugin):
             action='store_true',
             default=None,
         )
+        extract_parser.add_argument(
+            "-e",
+            "--edit",
+            help="open each note in editor for manual editing after extracting annotations to it",
+            action='store_true',
+            default=False,
+        )
         extract_parser.set_defaults(func=self.command)
 
     def command(self, conf, args):
@@ -131,6 +138,8 @@ class ExtractPlugin(PapersPlugin):
                 for annotation in annotations:
                     output+=f"> {annotation}\n\n"
                 write_file(notepath, output, 'w')
+                if edit is True:
+                    self.ui.edit_file(notepath, temporary=False)
                 # TODO implement NoteEvent(citekey).send()
 
 
