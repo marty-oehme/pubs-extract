@@ -11,7 +11,7 @@ from pubs.events import DocAddEvent, NoteEvent
 
 from pubs import repo
 from pubs.utils import resolve_citekey_list
-from pubs.content import write_file
+from pubs.content import check_file, read_text_file, write_file
 
 
 class ExtractPlugin(PapersPlugin):
@@ -52,18 +52,17 @@ class ExtractPlugin(PapersPlugin):
             nargs=argparse.REMAINDER,
             help="citekey(s) of the documents to extract from",
         )
-        # TODO option for writing to stdout or notes
         extract_parser.add_argument(
             "-w",
             "--write",
-            help="write to individual notes instead of standard out. CAREFUL: OVERWRITES NOTES CURRENTLY",
+            help="Write to individual notes instead of standard out. Appends to existing notes.",
             action="store_true",
             default=None,
         )
         extract_parser.add_argument(
             "-e",
             "--edit",
-            help="open each note in editor for manual editing after extracting annotations to it",
+            help="Open each note in editor for manual editing after extracting annotations to it.",
             action="store_true",
             default=False,
         )
@@ -136,13 +135,37 @@ class ExtractPlugin(PapersPlugin):
             annotations = contents[1]
             if annotations:
                 notepath = self.broker.real_notepath(paper.citekey, note_extension)
-                output = "# Annotations\n\n"
-                for annotation in annotations:
-                    output += f"> {annotation}\n\n"
-                write_file(notepath, output, "w")
+                if check_file(notepath, fail=False):
+                    self._append_to_note(notepath, annotations)
+                else:
+                    self._write_new_note(notepath, annotations)
+
                 if edit is True:
                     self.ui.edit_file(notepath, temporary=False)
                 NoteEvent(paper.citekey).send()
+
+    def _write_new_note(self, notepath, annotations):
+        output = "# Annotations\n\n"
+        for annotation in annotations:
+            output += f"> {annotation}\n\n"
+        write_file(notepath, output, "w")
+
+    def _append_to_note(self, notepath, annotations):
+        """Append new annotations to the end of a note.
+
+        Looks through note to determine any new annotations which should be
+        added and adds them to the end of the note file.
+        """
+        existing = read_text_file(notepath)
+        # removed annotations already found in the note
+        existing_dropped = [x for x in annotations if x not in existing]
+        if not existing_dropped:
+            return
+
+        output = ""
+        for annotation in existing_dropped:
+            output += f"> {annotation}\n\n"
+        write_file(notepath, output, "a")
 
 
 @DocAddEvent.listen()
