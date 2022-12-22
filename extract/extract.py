@@ -14,7 +14,6 @@ from pubs.utils import resolve_citekey_list
 from pubs.content import write_file
 
 
-
 class ExtractPlugin(PapersPlugin):
     """Make the pubs repository also a git repository.
 
@@ -58,14 +57,14 @@ class ExtractPlugin(PapersPlugin):
             "-w",
             "--write",
             help="write to individual notes instead of standard out. CAREFUL: OVERWRITES NOTES CURRENTLY",
-            action='store_true',
+            action="store_true",
             default=None,
         )
         extract_parser.add_argument(
             "-e",
             "--edit",
             help="open each note in editor for manual editing after extracting annotations to it",
-            action='store_true',
+            action="store_true",
             default=False,
         )
         extract_parser.set_defaults(func=self.command)
@@ -125,10 +124,10 @@ class ExtractPlugin(PapersPlugin):
             paper = contents[0]
             annotations = contents[1]
             if annotations:
-                output+=f"{paper.citekey}\n"
+                output += f"{paper.citekey}\n"
                 for annot in annotations:
-                    output+=f'> "{annot}"\n'
-                output+="\n"
+                    output += f'> "{annot}"\n'
+                output += "\n"
         print(output)
 
     def _to_notes(self, annotated_papers, note_extension="txt", edit=False):
@@ -136,13 +135,11 @@ class ExtractPlugin(PapersPlugin):
             paper = contents[0]
             annotations = contents[1]
             if annotations:
-                notepath = self.broker.real_notepath(
-                    paper.citekey, note_extension
-                )
+                notepath = self.broker.real_notepath(paper.citekey, note_extension)
                 output = "# Annotations\n\n"
                 for annotation in annotations:
-                    output+=f"> {annotation}\n\n"
-                write_file(notepath, output, 'w')
+                    output += f"> {annotation}\n\n"
+                write_file(notepath, output, "w")
                 if edit is True:
                     self.ui.edit_file(notepath, temporary=False)
                 NoteEvent(paper.citekey).send()
@@ -157,4 +154,3 @@ def modify_event(event):
             if all_annotations[0][1]:
                 plg._to_notes(all_annotations, plg.conf["main"]["note_extension"])
                 plg.ui.info(f"Imported {event.citekey} annotations.")
-
