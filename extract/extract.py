@@ -40,9 +40,15 @@ class ExtractPlugin(PapersPlugin):
         # or `:: {annotation} :: {page} ::`
         # and so on
         self.on_import = conf["plugins"].get("extract", {}).get("on_import", False)
-        self.minimum_similarity = float(conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75))
-        self.highlight_prefix = conf["plugins"].get("extract", {}).get("quote_prefix", "> ")
-        self.note_prefix = conf["plugins"].get("extract", {}).get("note_prefix", "Note: ")
+        self.minimum_similarity = float(
+            conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75)
+        )
+        self.highlight_prefix = (
+            conf["plugins"].get("extract", {}).get("quote_prefix", "> ")
+        )
+        self.note_prefix = (
+            conf["plugins"].get("extract", {}).get("note_prefix", "Note: ")
+        )
 
     def update_parser(self, subparsers, conf):
         """Allow the usage of the pubs extract subcommand"""
@@ -133,12 +139,16 @@ class ExtractPlugin(PapersPlugin):
         with fitz.Document(filename) as doc:
             for page in doc:
                 for annot in page.annots():
-                    content = self._retrieve_annotation_content(page, annot, self.highlight_prefix, self.note_prefix)
+                    content = self._retrieve_annotation_content(
+                        page, annot, self.highlight_prefix, self.note_prefix
+                    )
                     if content:
                         annotations.append(f"[{(page.number or 0) + 1}] {content}")
         return annotations
 
-    def _retrieve_annotation_content(self, page, annotation, highlight_prefix = "> ", note_prefix = "Note: "):
+    def _retrieve_annotation_content(
+        self, page, annotation, highlight_prefix="> ", note_prefix="Note: "
+    ):
         """Gets the text content of an annotation.
 
         Returns the actual content of an annotation. Sometimes
@@ -151,7 +161,7 @@ class ExtractPlugin(PapersPlugin):
         written = page.get_textbox(annotation.rect).replace("\n", " ")
 
         # highlight with selection in note
-        if Levenshtein.ratio(content,written) > self.minimum_similarity:
+        if Levenshtein.ratio(content, written) > self.minimum_similarity:
             return f"{highlight_prefix}{content}"
         # an independent note, not a highlight
         elif content and not written:
@@ -175,7 +185,7 @@ class ExtractPlugin(PapersPlugin):
             if annotations:
                 output += f"------ {paper.citekey} ------\n\n"
                 for annot in annotations:
-                    output += f'{annot}\n\n'
+                    output += f"{annot}\n\n"
                 output += "\n"
         print(output)
 
