@@ -1,7 +1,5 @@
 import os
-import sys
 import argparse
-from typing import Dict, List, Tuple
 
 # from subprocess import Popen, PIPE, STDOUT
 # from pipes import quote as shell_quote
@@ -9,12 +7,12 @@ from typing import Dict, List, Tuple
 import fitz
 
 # from ... import uis
-from ...plugins import PapersPlugin
-from ...events import PaperChangeEvent, PostCommandEvent
+from pubs.plugins import PapersPlugin
+from pubs.events import PaperChangeEvent, PostCommandEvent
 
-from ... import repo
-from ...utils import resolve_citekey_list
-from ...content import write_file
+from pubs import repo
+from pubs.utils import resolve_citekey_list
+from pubs.content import write_file
 
 
 
@@ -77,37 +75,37 @@ class ExtractPlugin(PapersPlugin):
         )
         if not citekeys:
             return
-        papers = self.gather_papers(citekeys)
+        papers = self._gather_papers(citekeys)
         all_annotations = self.extract(papers)
         if args.write:
-            self.to_notes(conf, all_annotations, args.edit)
+            self._to_notes(conf, all_annotations, args.edit)
         else:
-            self.to_stdout(all_annotations)
+            self._to_stdout(all_annotations)
         self.repository.close()
 
     def extract(self, papers):
         papers_annotated = []
         for paper in papers:
-            file = self.get_file(paper)
+            file = self._get_file(paper)
             try:
-                papers_annotated.append((paper, self.get_annotations(file)))
+                papers_annotated.append((paper, self._get_annotations(file)))
             except fitz.FileDataError as e:
                 print(f"ERROR: Document {file} is broken: {e}")
         return papers_annotated
 
-    def gather_papers(self, citekeys):
+    def _gather_papers(self, citekeys):
         papers = []
         for key in citekeys:
             papers.append(self.repository.pull_paper(key))
         return papers
 
-    def get_file(self, paper):
+    def _get_file(self, paper):
         path = self.broker.real_docpath(paper.docpath)
         if not path:
             self.ui.error(f"{paper.citekey} has no valid document.")
         return path
 
-    def get_annotations(self, filename):
+    def _get_annotations(self, filename):
         annotations = []
         with fitz.Document(filename) as doc:
             for page in doc:
@@ -119,7 +117,7 @@ class ExtractPlugin(PapersPlugin):
                         annotations.append(f"[{page.number}] {content}")
         return annotations
 
-    def to_stdout(self, annotated_papers):
+    def _to_stdout(self, annotated_papers):
         for contents in annotated_papers:
             paper = contents[0]
             annotations = contents[1]
@@ -129,7 +127,7 @@ class ExtractPlugin(PapersPlugin):
                     print(f'> "{annot}"')
                 print("")
 
-    def to_notes(self, conf, annotated_papers, edit=False):
+    def _to_notes(self, conf, annotated_papers, edit=False):
         for contents in annotated_papers:
             paper = contents[0]
             annotations = contents[1]
