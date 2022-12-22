@@ -136,7 +136,7 @@ class ExtractPlugin(PapersPlugin):
                         annotations.append(f"[{(page.number or 0) + 1}] {content}")
         return annotations
 
-    def _retrieve_annotation_content(self, page, annotation, connector = "\nNote: "):
+    def _retrieve_annotation_content(self, page, annotation, highlight_prefix = "> ", note_prefix = "Note: "):
         """Gets the text content of an annotation.
 
         Returns the actual content of an annotation. Sometimes
@@ -150,15 +150,15 @@ class ExtractPlugin(PapersPlugin):
 
         # highlight with selection in note
         if Levenshtein.ratio(content,written) > self.minimum_similarity:
-            return content
+            return f"{highlight_prefix}{content}"
         # an independent note, not a highlight
         elif content and not written:
-            return content
+            return f"{note_prefix}{content}"
         # both a highlight and a note
         elif content:
-            return f"{written}{connector}{content}"
+            return f"{highlight_prefix}{written}\n{note_prefix}{content}"
         # highlight with selection not in note
-        return written
+        return f"{highlight_prefix}{written}"
 
     def _to_stdout(self, annotated_papers):
         """Write annotations to stdout.
@@ -173,7 +173,7 @@ class ExtractPlugin(PapersPlugin):
             if annotations:
                 output += f"{paper.citekey}\n"
                 for annot in annotations:
-                    output += f'> "{annot}"\n'
+                    output += f'{annot}\n\n'
                 output += "\n"
         print(output)
 
