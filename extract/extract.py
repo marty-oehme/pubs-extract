@@ -230,4 +230,3 @@ def modify_event(event):
             all_annotations = plg.extract([event.citekey])
             if all_annotations[0][1]:
                 plg._to_notes(all_annotations, plg.note_extension)
-                plg.ui.info(f"Imported {event.citekey} annotations.")
