@@ -2,38 +2,85 @@
 
 Quickly extract annotations from your pdf files with the help of the pubs bibliography manager.
 
-Installation:
+## Installation:
+
+Still a bit painful since I have not set up any package management:
 
 Put `extract` folder in your pubs `plugs` directory.
 
-Add extract to your plugin list in pubs configuration file.
+Then add `extract` to your plugin list in the pubs configuration file.
 
-Usage:
+## Usage:
 
-`pubs extract <citekeys>`
+`pubs extract [-h|-w|-e] <citekeys>`
 
-This readme is a stub so far, feel free to extend it and raise a PR if you have the time.
-What follows is a not-very-sorted train of though on the plugin and pubs in general,
-to keep my thoughts in one place while I work on it.
+For example, to extract annotations from two entries, do:
 
-## extractor plugin:
+```bash
+pubs extract Bayat2015 Peck2004
+```
 
-- extracts highlights and annotations from a doc file (e.g. using PyMuPDF)
-- puts those in the annotation file of a doc in a customizable format
-- option to have it automatically run after a file is updated?
-- needs some way to delimit where it puts stuff and user stuff is in note
-    - one way is to have it look at `> [17] here be extracted annotation from page seventeen` annotations and put it in between
-    - another, probably simpler first, is to just append missing annotations to the end of the note
-- some highlights (or annotations in general) do not contain text as content
-    - pymupdf can extract the content of the underlying rectangle (mostly)
-    - issue is that sometimes the highlight contents are in content, sometimes a user comment instead
-        - we could have a comparison function which estimates how 'close' the two text snippets are and act accordingly
-- config option to map colors in annotations to meaning ('read', 'important', 'extra') in pubs
-    - colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly
-- make invoking the command run a query if `-e` option provided (or whatever) in pubs syntax and use resulting papers
-    - confirm?
+This will print the extracted annotations to the commandline through stdout.
 
-# would also be nice in pubs, missing for me
+If you invoke the command with the `-w` option, it will write it into your notes instead:
+
+```bash
+pubs extract -w Bayat2015 Peck2004
+```
+
+Will create notes for the two entries in your pubs note directory and fill them with
+the annotations. If a note already exists for any of the entries, it will instead append
+the annotations to the end of it, dropping all those that it already finds in the note
+(essentially only adding new annotations to the end).
+
+**PLEASE** Be aware that so far, I spent a single afternoon coding this plugin, it
+contains no tests and operates on your notes. In my use nothing too bad happened but
+only use it with adequate backup in place, or with your library being version controlled.
+
+You can invoke the command with `-e` to instantly edit the notes:
+
+```bash
+pubs extract -w -e Bayat2015 Peck2004
+```
+
+Will create/append annotations and drop you into the Bayat2015 note, when you close it
+directly into the Peck2004 note. Take care that it will be fairly annoying if you use this
+option with hundreds of entries being annotated.
+
+To extract the annotations for all your existing entries in one go, you can use:
+
+```bash
+pubs extract -w $(pubs list -k)
+```
+
+However, the warning for your notes' safety goes doubly for this command since it will touch
+*most* or *all* of your notes, depending on how many entries in your library have pdfs attached.
+
+This readme is still a bit messy, feel free to extend it and raise a PR if you have the time.
+
+What follows is a not-very-sorted train of though on where the plugin is at and where I
+could see myself taking it one day, provided I find the time.
+Pull requests tackling one of these areas of course very welcome.
+
+## Roadmap:
+
+- [x] extracts highlights and annotations from a doc file (e.g. using PyMuPDF)
+- [ ] puts those in the annotation file of a doc in a customizable format
+- [x] option to have it automatically run after a file is added?
+    - option to have it run whenever a pdf in the library was updated?
+- [ ] needs some way to delimit where it puts stuff and user stuff is in note
+    - [ ] one way is to have it look at `> [17] here be extracted annotation from page seventeen` annotations and put it in between
+    - [x] another, probably simpler first, is to just append missing annotations to the end of the note
+- [ ] some highlights (or annotations in general) do not contain text as content
+    - [ ] pymupdf can extract the content of the underlying rectangle (mostly)
+    - [ ] issue is that sometimes the highlight contents are in content, sometimes a user comment instead
+        - [ ] we could have a comparison function which estimates how 'close' the two text snippets are and act accordingly
+- [ ] config option to map colors in annotations to meaning ('read', 'important', 'extra') in pubs
+    - [ ] colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly
+- [ ] make invoking the command run a query if corresponding option provided (or whatever) in pubs syntax and use resulting papers
+    - [ ] confirm for many papers?
+
+## Things that would also be nice in pubs in general and don't really belong in this repository
 
 - `show` command which simply displays given entry in a nice way
     - could take multiple entries but present them all in the same larger way
