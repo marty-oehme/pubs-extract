@@ -148,10 +148,16 @@ class ExtractPlugin(PapersPlugin):
         content = annotation.info["content"].replace("\n", " ")
         written = page.get_textbox(annotation.rect).replace("\n", " ")
 
+        # highlight with selection in note
         if Levenshtein.ratio(content,written) > self.minimum_similarity:
             return content
+        # an independent note, not a highlight
+        elif content and not written:
+            return content
+        # both a highlight and a note
         elif content:
             return f"{written}{connector}{content}"
+        # highlight with selection not in note
         return written
 
     def _to_stdout(self, annotated_papers):
