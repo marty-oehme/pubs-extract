@@ -109,12 +109,19 @@ class ExtractPlugin(PapersPlugin):
                     print(f'> "{annot}"')
                 print("")
 
-
-    def to_notes(self, filename, annotations):
-        with open(f"{os.path.splitext(filename)[0]}.md", "w") as out:
-            out.write(f"# Annotations:\n\n")
-            out.writelines(annotations)
-            out.write(f"\n---")
+    def to_notes(self, conf, annotated_papers, edit=False):
+        for contents in annotated_papers:
+            paper = contents[0]
+            annotations = contents[1]
+            if annotations:
+                notepath = self.broker.real_notepath(
+                    paper.citekey, conf["main"]["note_extension"]
+                )
+                output = "# Annotations\n\n"
+                for annotation in annotations:
+                    output+=f"> {annotation}\n\n"
+                write_file(notepath, output, 'w')
+                # TODO implement NoteEvent(citekey).send()
 
 
 @PaperChangeEvent.listen()
