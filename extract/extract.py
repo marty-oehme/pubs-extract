@@ -169,6 +169,7 @@ class ExtractPlugin(PapersPlugin):
                     self._append_to_note(notepath, annotations)
                 else:
                     self._write_new_note(notepath, annotations)
+                self.ui.info(f"Wrote annotations to {paper.citekey} note {notepath}.")
 
                 if edit is True:
                     self.ui.edit_file(notepath, temporary=False)
