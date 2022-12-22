@@ -17,6 +17,7 @@ from ...utils import resolve_citekey_list
 from ...content import write_file
 
 
+
 class ExtractPlugin(PapersPlugin):
     """Make the pubs repository also a git repository.
 
@@ -36,6 +37,7 @@ class ExtractPlugin(PapersPlugin):
         self.repository = repo.Repository(conf)
         self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
         self.broker = self.repository.databroker
+
         self.quiet = conf["plugins"].get("extract", {}).get("quiet", False)
         # self.manual = conf['plugins'].get('git', {}).get('manual', False)
         # self.force_color = conf['plugins'].get('git', {}).get('force_color', True)
@@ -81,6 +83,7 @@ class ExtractPlugin(PapersPlugin):
             self.to_notes(conf, all_annotations, args.edit)
         else:
             self.to_stdout(all_annotations)
+        self.repository.close()
 
     def extract(self, papers):
         papers_annotated = []
