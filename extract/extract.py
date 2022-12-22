@@ -45,12 +45,19 @@ class ExtractPlugin(PapersPlugin):
         """Allow the usage of the pubs git subcommand"""
         # TODO option for quiet/loud mode.
         # TODO option for ignoring missing documents or erroring.
-        # TODO option for writing to stdout or notes
         extract_parser = subparsers.add_parser(self.name, help=self.description)
         extract_parser.add_argument(
             "citekeys",
             nargs=argparse.REMAINDER,
             help="citekey(s) of the documents to extract from",
+        )
+        # TODO option for writing to stdout or notes
+        extract_parser.add_argument(
+            "-w",
+            "--write",
+            help="write to individual notes instead of standard out. CAREFUL: OVERWRITES NOTES CURRENTLY",
+            action='store_true',
+            default=None,
         )
         extract_parser.set_defaults(func=self.command)
 
@@ -63,7 +70,10 @@ class ExtractPlugin(PapersPlugin):
             return
         papers = self.gather_papers(citekeys)
         all_annotations = self.extract(papers)
-        self.to_stdout(all_annotations)
+        if args.write:
+            self.to_notes(conf, all_annotations, args.edit)
+        else:
+            self.to_stdout(all_annotations)
 
     def extract(self, papers):
         papers_annotated = []
