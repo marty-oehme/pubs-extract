@@ -29,7 +29,7 @@ class ExtractPlugin(PapersPlugin):
 
     def __init__(self, conf, ui):
         self.ui = ui
-        self.conf = conf
+        self.note_extension = conf["main"]["note_extension"]
         self.repository = repo.Repository(conf)
         self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
         self.broker = self.repository.databroker
@@ -74,7 +74,7 @@ class ExtractPlugin(PapersPlugin):
             return
         all_annotations = self.extract(citekeys)
         if args.write:
-            self._to_notes(all_annotations, conf["main"]["note_extension"], args.edit)
+            self._to_notes(all_annotations, self.note_extension, args.edit)
         else:
             self._to_stdout(all_annotations)
         self.repository.close()
@@ -210,5 +210,5 @@ def modify_event(event):
         if plg.onimport:
             all_annotations = plg.extract([event.citekey])
             if all_annotations[0][1]:
-                plg._to_notes(all_annotations, plg.conf["main"]["note_extension"])
+                plg._to_notes(all_annotations, plg.note_extension)
                 plg.ui.info(f"Imported {event.citekey} annotations.")
