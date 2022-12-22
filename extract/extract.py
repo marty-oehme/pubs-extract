@@ -1,9 +1,6 @@
 import os
 import argparse
 
-# from subprocess import Popen, PIPE, STDOUT
-# from pipes import quote as shell_quote
-
 import fitz
 
 from pubs.plugins import PapersPlugin
@@ -15,13 +12,16 @@ from pubs.content import check_file, read_text_file, write_file
 
 
 class ExtractPlugin(PapersPlugin):
-    """Make the pubs repository also a git repository.
+    """Extract annotations from any pdf document.
 
-    The git plugin creates a git repository in the pubs directory
-    and commit the changes to the pubs repository.
+    The extract plugin allows manual or automatic extraction of all annotations
+    contained in the pdf documents belonging to entries of the pubs library.
 
-    It also add the `pubs git` subcommand, so git commands can be executed
-    in the git repository from the command line.
+    It can write those changes to stdout or directly create and update notes
+    for the pubs entries.
+
+    It adds a `pubs extract` subcommand through which it is invoked, but can
+    optionally run whenever a new document is imported for a pubs entry.
     """
 
     name = "extract"
@@ -39,12 +39,9 @@ class ExtractPlugin(PapersPlugin):
         # or `:: {annotation} :: {page} ::`
         # and so on
         self.onimport = conf["plugins"].get("extract", {}).get("onimport", False)
-        # self.manual = conf['plugins'].get('git', {}).get('manual', False)
-        # self.force_color = conf['plugins'].get('git', {}).get('force_color', True)
-        # self.list_of_changes = []
 
     def update_parser(self, subparsers, conf):
-        """Allow the usage of the pubs git subcommand"""
+        """Allow the usage of the pubs extract subcommand"""
         # TODO option for ignoring missing documents or erroring.
         extract_parser = subparsers.add_parser(self.name, help=self.description)
         extract_parser.add_argument(
@@ -69,7 +66,7 @@ class ExtractPlugin(PapersPlugin):
         extract_parser.set_defaults(func=self.command)
 
     def command(self, conf, args):
-        """Run the annotation extraction"""
+        """Run the annotation extraction command."""
         citekeys = resolve_citekey_list(
             self.repository, conf, args.citekeys, ui=self.ui, exit_on_fail=True
         )
@@ -83,6 +80,11 @@ class ExtractPlugin(PapersPlugin):
         self.repository.close()
 
     def extract(self, citekeys):
+        """Extracts annotations from citekeys.
+
+        Returns all annotations belonging to the papers that
+        are described by the citekeys passed in.
+        """
         papers = self._gather_papers(citekeys)
         papers_annotated = []
         for paper in papers:
@@ -94,18 +96,35 @@ class ExtractPlugin(PapersPlugin):
         return papers_annotated
 
     def _gather_papers(self, citekeys):
+        """Get all papers for citekeys.
+
+        Returns all Paper objects described by the citekeys
+        passed in.
+        """
         papers = []
         for key in citekeys:
             papers.append(self.repository.pull_paper(key))
         return papers
 
     def _get_file(self, paper):
+        """Get path of document belonging to paper.
+
+        Returns the real path to the document which belongs
+        to the paper passed in. Emits a warning if no
+        document belongs to paper.
+        """
         path = self.broker.real_docpath(paper.docpath)
         if not path:
             self.ui.warning(f"{paper.citekey} has no valid document.")
         return path
 
     def _get_annotations(self, filename):
+        """Extract annotations from a file.
+
+        Returns all readable annotations contained in the file
+        passed in. Only returns Highlight or Text annotations
+        currently.
+        """
         annotations = []
         with fitz.Document(filename) as doc:
             for page in doc:
@@ -118,6 +137,11 @@ class ExtractPlugin(PapersPlugin):
         return annotations
 
     def _to_stdout(self, annotated_papers):
+        """Write annotations to stdout.
+
+        Simply outputs the gathered annotations over stdout
+        ready to be passed on through pipelines etc.
+        """
         output = ""
         for contents in annotated_papers:
             paper = contents[0]
@@ -130,6 +154,12 @@ class ExtractPlugin(PapersPlugin):
         print(output)
 
     def _to_notes(self, annotated_papers, note_extension="txt", edit=False):
+        """Write annotations into pubs notes.
+
+        Permanently writes the given annotations into notes
+        in the pubs notes directory. Creates new notes for
+        citekeys missing a note or appends to existing.
+        """
         for contents in annotated_papers:
             paper = contents[0]
             annotations = contents[1]
@@ -145,6 +175,11 @@ class ExtractPlugin(PapersPlugin):
                 NoteEvent(paper.citekey).send()
 
     def _write_new_note(self, notepath, annotations):
+        """Create a new note containing the annotations.
+
+        Will create a new note in the notes folder of pubs
+        and fill it with the annotations extracted from pdf.
+        """
         output = "# Annotations\n\n"
         for annotation in annotations:
             output += f"> {annotation}\n\n"
