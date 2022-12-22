@@ -14,7 +14,7 @@ from ...events import PaperChangeEvent, PostCommandEvent
 
 from ... import repo
 from ...utils import resolve_citekey_list
-from ...filebroker import DocBroker
+from ...content import write_file
 
 
 class ExtractPlugin(PapersPlugin):
@@ -33,9 +33,9 @@ class ExtractPlugin(PapersPlugin):
     def __init__(self, conf, ui):
         pass
         self.ui = ui
-        self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
-        self.broker = DocBroker(self.pubsdir)
         self.repository = repo.Repository(conf)
+        self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
+        self.broker = self.repository.databroker
         self.quiet = conf["plugins"].get("extract", {}).get("quiet", False)
         # self.manual = conf['plugins'].get('git', {}).get('manual', False)
         # self.force_color = conf['plugins'].get('git', {}).get('force_color', True)
@@ -66,16 +66,13 @@ class ExtractPlugin(PapersPlugin):
         self.to_stdout(all_annotations)
 
     def extract(self, papers):
-        papers_annotated: Dict = {}
+        papers_annotated = []
         for paper in papers:
             file = self.get_file(paper)
             try:
-                papers_annotated[paper.citekey] = self.get_annotations(file)
+                papers_annotated.append((paper, self.get_annotations(file)))
             except fitz.FileDataError as e:
                 print(f"ERROR: Document {file} is broken: {e}")
-            if not self.quiet:
-                # TODO find pretty print functionality
-                self.ui.info(f"Extracted annotations from {paper.citekey}")
         return papers_annotated
 
     def gather_papers(self, citekeys):
@@ -103,11 +100,13 @@ class ExtractPlugin(PapersPlugin):
         return annotations
 
     def to_stdout(self, annotated_papers):
-        for citekey, annotations in annotated_papers.items():
+        for contents in annotated_papers:
+            paper = contents[0]
+            annotations = contents[1]
             if annotations:
-                print(f"{citekey}")
+                print(f"{paper.citekey}")
                 for annot in annotations:
-                    print(f"> \"{annot}\"")
+                    print(f'> "{annot}"')
                 print("")
 
 
