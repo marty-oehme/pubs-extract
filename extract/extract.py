@@ -43,11 +43,10 @@ class ExtractPlugin(PapersPlugin):
         self.minimum_similarity = float(
             conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75)
         )
-        self.highlight_prefix = (
-            conf["plugins"].get("extract", {}).get("quote_prefix", "> ")
-        )
-        self.note_prefix = (
-            conf["plugins"].get("extract", {}).get("note_prefix", "Note: ")
+        self.formatting = (
+            conf["plugins"]
+            .get("extract", {})
+            .get("formatting", "> {quote} [{page}]\nNote: {note}")
         )
 
     def update_parser(self, subparsers, conf):
@@ -139,16 +138,21 @@ class ExtractPlugin(PapersPlugin):
         with fitz.Document(filename) as doc:
             for page in doc:
                 for annot in page.annots():
-                    content = self._retrieve_annotation_content(
-                        page, annot, self.highlight_prefix, self.note_prefix
-                    )
-                    if content:
-                        annotations.append(f"[{(page.number or 0) + 1}] {content}")
+                    quote, note = self._retrieve_annotation_content(page, annot)
+
+                    replacements = [
+                        ("{quote}", quote),
+                        ("{note}", note),
+                        ("{page}", str(page.number)),
+                    ]
+                    output = self.formatting
+                    for rep in replacements:
+                        output = output.replace(rep[0], rep[1])
+
+                    annotations.append(output)
         return annotations
 
-    def _retrieve_annotation_content(
-        self, page, annotation, highlight_prefix="> ", note_prefix="Note: "
-    ):
+    def _retrieve_annotation_content(self, page, annotation):
         """Gets the text content of an annotation.
 
         Returns the actual content of an annotation. Sometimes
@@ -162,15 +166,15 @@ class ExtractPlugin(PapersPlugin):
 
         # highlight with selection in note
         if Levenshtein.ratio(content, written) > self.minimum_similarity:
-            return f"{highlight_prefix}{content}"
+            return (content, "")
         # an independent note, not a highlight
         elif content and not written:
-            return f"{note_prefix}{content}"
+            return ("", content)
         # both a highlight and a note
         elif content:
-            return f"{highlight_prefix}{written}\n{note_prefix}{content}"
+            return (written, content)
         # highlight with selection not in note
-        return f"{highlight_prefix}{written}"
+        return (written, "")
 
     def _to_stdout(self, annotated_papers):
         """Write annotations to stdout.
