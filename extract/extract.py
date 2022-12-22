@@ -49,7 +49,7 @@ class ExtractPlugin(PapersPlugin):
             .get("extract", {})
             .get(
                 "formatting",
-                "[{page}]{newline}{quote_begin}> {quote}{newline}{quote_end}{note_begin}Note: {note}{note_end}",
+                "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note}{note_end}",
             )
         )
 
@@ -151,10 +151,10 @@ class ExtractPlugin(PapersPlugin):
     def _format_annotation(self, quote, note, pagenumber=0):
         output = self.formatting
         replacements = {
-            "{quote}": quote,
-            "{note}": note,
-            "{page}": str(pagenumber),
-            "{newline}": "\n",
+            r"{quote}": quote,
+            r"{note}": note,
+            r"{page}": str(pagenumber),
+            r"{newline}": "\n",
         }
         if note == "":
             output = re.sub(r"{note_begin}.*{note_end}", "", output)
@@ -243,7 +243,7 @@ class ExtractPlugin(PapersPlugin):
         """
         output = "# Annotations\n\n"
         for annotation in annotations:
-            output += f"> {annotation}\n\n"
+            output += f"{annotation}\n\n"
         write_file(notepath, output, "w")
 
     def _append_to_note(self, notepath, annotations):
@@ -260,7 +260,7 @@ class ExtractPlugin(PapersPlugin):
 
         output = ""
         for annotation in existing_dropped:
-            output += f"> {annotation}\n\n"
+            output += f"{annotation}\n\n"
         write_file(notepath, output, "a")
 
 
