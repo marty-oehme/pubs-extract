@@ -171,7 +171,7 @@ class ExtractPlugin(PapersPlugin):
             paper = contents[0]
             annotations = contents[1]
             if annotations:
-                output += f"{paper.citekey}\n"
+                output += f"------ {paper.citekey} ------\n\n"
                 for annot in annotations:
                     output += f'{annot}\n\n'
                 output += "\n"
