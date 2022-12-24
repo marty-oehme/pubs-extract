@@ -136,7 +136,7 @@ class ExtractPlugin(PapersPlugin):
             "formatting",
             "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}",
         )
-        self.color_mapping = settings.get("color_mapping", {})
+        self.color_mapping = settings.get("tags", {})
 
     def update_parser(self, subparsers, _):
         """Allow the usage of the pubs extract subcommand"""

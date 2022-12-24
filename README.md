@@ -49,10 +49,10 @@ This should generally be an alright default but is here to be changed for exampl
 
 ---
 
-The plugin contains a configuration sub-category of `color_mapping`: Here, you can define meaning for your highlight/annotation colors. For example, if you always highlight the main arguments and findings in orange and always highlight things you have to follow up on in blue, you can assign the meanings 'important' and 'todo' to them respectively as follows:
+The plugin contains a configuration sub-category of `tags`: Here, you can define meaning for your highlight/annotation colors. For example, if you always highlight the main arguments and findings in orange and always highlight things you have to follow up on in blue, you can assign the meanings 'important' and 'todo' to them respectively as follows:
 
 ```ini
-[[[color_mapping]]]
+[[[tags]]]
 orange = "important"
 blue = "todo"
 ```
