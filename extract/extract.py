@@ -8,11 +8,12 @@ import Levenshtein
 from pubs.plugins import PapersPlugin
 from pubs.events import DocAddEvent, NoteEvent
 
-from pubs import repo
+from pubs import repo, pretty
 from pubs.utils import resolve_citekey_list
 from pubs.content import check_file, read_text_file, write_file
 from pubs.query import get_paper_filter
 
+CONFIRMATION_PAPER_THRESHOLD=5
 
 class ExtractPlugin(PapersPlugin):
     """Extract annotations from any pdf document.
@@ -137,20 +138,25 @@ class ExtractPlugin(PapersPlugin):
         """
         papers = []
         if not args.is_query:
-            citekeys = resolve_citekey_list(
+            keys = resolve_citekey_list(
                 self.repository, conf, args.query, ui=self.ui, exit_on_fail=True
             )
-            for key in citekeys:
+            for key in keys:
                 papers.append(self.repository.pull_paper(key))
         else:
-            papers = filter(
+            papers = list(filter(
                 get_paper_filter(
                     args.query,
                     case_sensitive=args.case_sensitive,
                     strict=args.strict,
                 ),
                 self.repository.all_papers(),
-            )
+            ))
+        if len(papers) > CONFIRMATION_PAPER_THRESHOLD:
+            self.ui.message('\n'.join(
+                pretty.paper_oneliner(p, citekey_only=False, max_authors=conf['main']['max_authors'])
+                for p in papers))
+            self.ui.input_yn(question=f"Extract annotations for these papers?", default='y')
         return papers
 
     def _get_file(self, paper):
