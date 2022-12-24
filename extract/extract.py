@@ -91,6 +91,10 @@ class Annotation:
                 nearest = name
         return nearest
 
+    def headline(self, short=False, max_authors=3):
+        headline = pretty.paper_oneliner(self.paper, citekey_only=short, max_authors=max_authors)
+        return re.sub(r"\[pdf\]", "", headline).rstrip()
+
     def _color_similarity_ratio(self, color_one, color_two):
         """Return the similarity of two colors between 0 and 1.
 
@@ -137,6 +141,7 @@ class ExtractPlugin(PapersPlugin):
             "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}",
         )
         self.color_mapping = settings.get("tags", {})
+        self.short_header = settings.get("short_header", False)
 
     def update_parser(self, subparsers, _):
         """Allow the usage of the pubs extract subcommand"""
@@ -199,7 +204,7 @@ class ExtractPlugin(PapersPlugin):
         if args.write:
             self._to_notes(all_annotations, self.note_extension, args.edit)
         else:
-            self._to_stdout(all_annotations)
+            self._to_stdout(all_annotations, self.short_header)
         self.repository.close()
 
     def extract(self, papers):
@@ -322,7 +327,7 @@ class ExtractPlugin(PapersPlugin):
         # highlight with selection not in note
         return (written, "")
 
-    def _to_stdout(self, annotated_papers):
+    def _to_stdout(self, annotated_papers, short_header=True):
         """Write annotations to stdout.
 
         Simply outputs the gathered annotations over stdout
@@ -330,12 +335,11 @@ class ExtractPlugin(PapersPlugin):
         """
         output = ""
         for citekey, annotations in annotated_papers.items():
-            output += f"------ {citekey} ------\n"
+            output += f"\n------ {annotations[0].headline(short=short_header)} ------\n\n"
             for annotation in annotations:
-                # for annot in annotations:
                 output += f"{annotation.format(self.formatting)}\n"
                 output += "\n"
-        self.ui.message(output)
+        self.ui.message(output.strip())
 
     def _to_notes(self, annotated_papers, note_extension="txt", edit=False):
         """Write annotations into pubs notes.
@@ -363,7 +367,7 @@ class ExtractPlugin(PapersPlugin):
         Will create a new note in the notes folder of pubs
         and fill it with the annotations extracted from pdf.
         """
-        output = "# Annotations\n\n"
+        output = f"# {annotations[0].headline(short=short_header)}\n\n"
         for annotation in annotations:
             output += f"{annotation.format(self.formatting)}\n\n"
         write_file(notepath, output, "w")

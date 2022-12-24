@@ -20,6 +20,7 @@ active = extract
 
 [[extract]]
 on_import = False
+short_header = False
 minimum_text_similarity = 0.75
 minimum_color_similarity = 0.833
 formatting = "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}"
@@ -27,6 +28,10 @@ formatting = "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note
 
 If `on_import` is `True` extraction is automatically run whenever a new document is added to the library,
 if false extraction has to be handled manually.
+
+---
+
+`short_header` determines if the headline of each annotation output (displaying the paper it is from) should contain the whole formatted author, year, title string (`False`) or just the citekey (`True`).
 
 ---
 
@@ -165,6 +170,7 @@ content, because then we can just use that. It is harder to parse if it does not
 - [x] make invoking the command run a query if corresponding option provided (or whatever) in pubs syntax and use resulting papers
     - [x] confirm for many papers?
 - [ ] warning when the amount of annotations in file is different than the amount extracted?
+- [ ] tests tests tests tests tests, lah-di-dah
 
 ## Things that would also be nice in pubs in general and don't really belong in this repository
 
