@@ -38,20 +38,15 @@ class ExtractPlugin(PapersPlugin):
         self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
         self.broker = self.repository.databroker
 
-        self.on_import = conf["plugins"].get("extract", {}).get("on_import", False)
-        self.minimum_similarity = float(
-            conf["plugins"].get("extract", {}).get("minimum_similarity", 0.75)
-        )
-        self.formatting = (
-            conf["plugins"]
-            .get("extract", {})
-            .get(
-                "formatting",
-                "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note}{note_end}",
-            )
+        settings = conf["plugins"].get("extract", {})
+        self.on_import = settings.get("on_import", False)
+        self.minimum_similarity = float(settings.get("minimum_similarity", 0.75))
+        self.formatting = settings.get(
+            "formatting",
+            "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note}{note_end}",
         )
 
-    def update_parser(self, subparsers, conf):
+    def update_parser(self, subparsers, _):
         """Allow the usage of the pubs extract subcommand"""
         # TODO option for ignoring missing documents or erroring.
         extract_parser = subparsers.add_parser(self.name, help=self.description)
@@ -141,22 +136,33 @@ class ExtractPlugin(PapersPlugin):
             keys = resolve_citekey_list(
                 self.repository, conf, args.query, ui=self.ui, exit_on_fail=True
             )
+            if not keys:
+                return []
             for key in keys:
                 papers.append(self.repository.pull_paper(key))
         else:
-            papers = list(filter(
-                get_paper_filter(
-                    args.query,
-                    case_sensitive=args.case_sensitive,
-                    strict=args.strict,
-                ),
-                self.repository.all_papers(),
-            ))
+            papers = list(
+                filter(
+                    get_paper_filter(
+                        args.query,
+                        case_sensitive=args.case_sensitive,
+                        strict=args.strict,
+                    ),
+                    self.repository.all_papers(),
+                )
+            )
         if len(papers) > CONFIRMATION_PAPER_THRESHOLD:
-            self.ui.message('\n'.join(
-                pretty.paper_oneliner(p, citekey_only=False, max_authors=conf['main']['max_authors'])
-                for p in papers))
-            self.ui.input_yn(question=f"Extract annotations for these papers?", default='y')
+            self.ui.message(
+                "\n".join(
+                    pretty.paper_oneliner(
+                        p, citekey_only=False, max_authors=conf["main"]["max_authors"]
+                    )
+                    for p in papers
+                )
+            )
+            self.ui.input_yn(
+                question=f"Extract annotations for these papers?", default="y"
+            )
         return papers
 
     def _get_file(self, paper):
