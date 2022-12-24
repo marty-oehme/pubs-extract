@@ -83,7 +83,7 @@ class Annotation:
             self.colors.get("stroke") or self.colors.get("fill") or (0.0, 0.0, 0.0)
         )
         nearest = None
-        minimum_similarity = COLOR_SIMILARITY_THRESHOLD
+        minimum_similarity = COLOR_SIMILARITY_MINIMUM
         for name, values in COLORS.items():
             similarity_ratio = self._color_similarity_ratio(values, annot_colors)
             if similarity_ratio > minimum_similarity:
