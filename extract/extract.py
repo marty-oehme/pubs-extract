@@ -1,6 +1,7 @@
 import os
 import re
 import argparse
+import math
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -17,6 +18,15 @@ from pubs.content import check_file, read_text_file, write_file
 from pubs.query import get_paper_filter
 
 CONFIRMATION_PAPER_THRESHOLD = 5
+
+COLORS = {
+    "red": (1, 0, 0),
+    "green": (0, 1, 0),
+    "blue": (0, 0, 1),
+    "yellow": (1, 1, 0),
+    "purple": (0.5, 0, 0.5),
+    "orange": (1, 0.65, 0),
+}
 
 
 @dataclass
@@ -55,6 +65,17 @@ class Annotation:
         )
         return pattern.sub(lambda x: replacements[x.group(0)], output)
 
+    @property
+    def colorname(self):
+        annot_colors = self.colors.get("stroke") or self.colors.get("fill")
+        nearest = None
+        smallest_dist = 2.0
+        for name, values in COLORS.items():
+            dist = math.dist([*values], [*annot_colors])
+            if dist < smallest_dist:
+                smallest_dist = dist
+                nearest = name
+        return nearest
 
 class ExtractPlugin(PapersPlugin):
     """Extract annotations from any pdf document.
@@ -86,6 +107,7 @@ class ExtractPlugin(PapersPlugin):
             "formatting",
             "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note}{note_end}",
         )
+        self.color_mapping = settings.get("color_mapping", {})
 
     def update_parser(self, subparsers, _):
         """Allow the usage of the pubs extract subcommand"""
@@ -166,6 +188,9 @@ class ExtractPlugin(PapersPlugin):
             except fitz.FileDataError as e:
                 self.ui.error(f"Document {file} is broken: {e}")
         return papers_annotated
+
+    def mapped_tag(self, colorname):
+        return self.color_mapping.get(colorname)
 
     def _gather_papers(self, conf, args):
         """Get all papers for citekeys.
