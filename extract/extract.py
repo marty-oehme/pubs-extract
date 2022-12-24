@@ -40,6 +40,7 @@ class Annotation:
     content: str = ""
     page: int = 1
     colors: Tuple = (0.0, 0.0, 0.0)
+    tag: str = None
 
     def formatted(self, formatting):
         output = formatting
@@ -48,6 +49,7 @@ class Annotation:
             r"{note}": self.content,
             r"{page}": str(self.page),
             r"{newline}": "\n",
+            r"{tag}": self.tag,
         }
         if self.text == "":
             output = re.sub(r"{quote_begin}.*{quote_end}", "", output)
@@ -77,6 +79,7 @@ class Annotation:
                 nearest = name
         return nearest
 
+
 class ExtractPlugin(PapersPlugin):
     """Extract annotations from any pdf document.
 
@@ -105,7 +108,7 @@ class ExtractPlugin(PapersPlugin):
         self.minimum_similarity = float(settings.get("minimum_similarity", 0.75))
         self.formatting = settings.get(
             "formatting",
-            "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note}{note_end}",
+            "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note} {note_end} #{tag}",
         )
         self.color_mapping = settings.get("color_mapping", {})
 
@@ -189,7 +192,7 @@ class ExtractPlugin(PapersPlugin):
                 self.ui.error(f"Document {file} is broken: {e}")
         return papers_annotated
 
-    def mapped_tag(self, colorname):
+    def tag_from_colorname(self, colorname):
         return self.color_mapping.get(colorname)
 
     def _gather_papers(self, conf, args):
@@ -256,17 +259,17 @@ class ExtractPlugin(PapersPlugin):
             for page in doc:
                 for annot in page.annots():
                     quote, note = self._retrieve_annotation_content(page, annot)
-                    annotations.append(
-                        Annotation(
-                            file=filename,
-                            paper=paper,
-                            text=quote,
-                            content=note,
-                            colors=annot.colors,
-                            type=annot.type,
-                            page=(page.number or 0) + 1,
-                        )
+                    a = Annotation(
+                        file=filename,
+                        paper=paper,
+                        text=quote,
+                        content=note,
+                        colors=annot.colors,
+                        type=annot.type[1],
+                        page=(page.number or 0) + 1,
                     )
+                    a.tag = self.tag_from_colorname(a.colorname)
+                    annotations.append(a)
         return annotations
 
     def _retrieve_annotation_content(self, page, annotation):
