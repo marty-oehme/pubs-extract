@@ -127,7 +127,7 @@ class ExtractPlugin(PapersPlugin):
         settings = conf["plugins"].get("extract", {})
         self.on_import = settings.get("on_import", False)
         self.minimum_similarity = float(
-            settings.get("minimum_similarity", TEXT_SIMILARITY_MINIMUM)
+            settings.get("minimum_text_similarity", TEXT_SIMILARITY_MINIMUM)
         )
         self.minimum_color_similarity = float(
             settings.get("minimum_color_similarity", COLOR_SIMILARITY_MINIMUM)

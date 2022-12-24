@@ -20,40 +20,17 @@ active = extract
 
 [[extract]]
 on_import = False
-formatting = "[{page}]{newline}{quote_begin}> {quote}{newline}{quote_end}{note_begin}Note: {note}{note_end}"
-minimum_similarity = 0.75
+minimum_text_similarity = 0.75
+minimum_color_similarity = 0.833
+formatting = "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}"
 ```
 
 If `on_import` is `True` extraction is automatically run whenever a new document is added to the library,
 if false extraction has to be handled manually.
 
-`formatting` takes a string with a variety of template options. You can use any of the following:
+---
 
-- `{page}`: The page number the annotation was found on.
-- `{quote}`: The actual quoted string (i.e. highlighted).
-- `{note}`: The annotation note (i.e. addded reader).
-- `{quote_begin}`: Mark the area that begins a quotation. Useful to get rid of prefixes or suffixes if no quotation exists. Requires a corresponding `{quote_end}` to be set after.
-- `{note_begin}`: Same idea for the note area. Requires a corresponding `{note_end}` to be set after.
-
-For example, the default formatting string will result in this output:
-
-```markdown
-[4]
-> came “urban rights” caused collective outrage. Thus, through- out 2007 and 2008, protestors in towns and villages across the Nile Delta poured into the streets to rally over cuts in water flow. Deployment of massive riot police could not stop
-Note: Often illegally connected to network, ‘revolution of the thirsty’
-```
-
-The formatting string `{quote_begin}Quote: {quote}{page}{newline}{quote_end}{note_begin}Note: {note}{note_end}`
-will result in the following output:
-
-```markdown
-Quote: came “urban rights” caused collective outrage. Thus, through- out 2007 and 2008, protestors in towns and villages across the Nile Delta poured into the streets to rally over cuts in water flow. Deployment of massive riot police could not stop [4]
-Note: Often illegally connected to network, ‘revolution of the thirsty’
-```
-
-Note, however, that in this example the page number if *only* displayed if the annotation contains a quote.
-
-`minimum_similarity` sets the required similarity of an annotation's note and written words to be viewed
+`minimum_text_similarity` sets the required similarity of an annotation's note and written words to be viewed
 as one. Any annotation that has both and is *under* the minimum similarity will be added in the following form:
 
 ```markdown
@@ -63,6 +40,47 @@ Note: my additional thoughts
 
 That is, the extractor detects additional written words by whoever annotated and adds them to the extraction.
 The option generally should not take too much tuning, but it is there if you need it.
+
+---
+
+`minimum_color_similarity` sets the required similarity of highlight/annotation colors to be recognized as the 'pure' versions of themselves for color mapping (see below). With a low required similarity, for example dark green and light green will both be recognized simply as 'green' while a high similarity will not match them, instead only matching closer matches to a pure (0, 255, 0) green value.
+
+This should generally be an alright default but is here to be changed for example if you work with a lot of different annotation colors (where dark purple and light purple get different meanings) and get false positives.
+
+---
+
+The plugin contains a configuration sub-category of `color_mapping`: Here, you can define meaning for your highlight/annotation colors. For example, if you always highlight the main arguments and findings in orange and always highlight things you have to follow up on in blue, you can assign the meanings 'important' and 'todo' to them respectively as follows:
+
+```ini
+[[[color_mapping]]]
+orange = "important"
+blue = "todo"
+```
+
+Currently recognized colors are: `red` `green` `blue` `yellow` `purple` `orange`.
+Since these meanings are often highly dependent on personal organization and reading systems,
+no defaults are set here.
+
+---
+
+`formatting` takes a string with a variety of template options. You can use any of the following:
+
+- `{page}`: The page number the annotation was found on.
+- `{quote}`: The actual quoted string (i.e. highlighted).
+- `{note}`: The annotation note (i.e. addded reader).
+- `{%quote_container [other text] %}`: Mark the area that contains a quotation. Useful to get rid of prefixes or suffixes if no quotation exists. Usually contains some plain text and a `{quote}` element. Can *not* be nested with other containers.
+- `{%note_container [other text] %}`: Mark the area that contains a note. Useful to get rid of prefixes or suffixes if no note exists. Usually contains some plain text and a `{note}` element. Can *not* be nested with other containers.
+- `{%tag_container [other text] %}`: Mark the area that contains a tag. Useful to get rid of prefixes or suffixes if no tag exists. Usually contains some plain text and a `{tag}` element. Can *not* be nested with other containers.
+- `{newline}`: Add a line break in the resulting annotation display.
+
+For example, the default formatting string `"{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}"` will result in this output:
+
+```
+> Mobilizing the TPSN scheme (see above) and drawing on cultural political economy and critical governance studies, this landmark article offers an alternative account [5]
+Note: a really intersting take on polydolywhopp
+```
+
+Container marks are useful to encapsulate a specific type of the annotation, so extracted annotations in the end don't contains useless linebreaks or quotations markup.
 
 ## Usage:
 
@@ -131,20 +149,21 @@ content, because then we can just use that. It is harder to parse if it does not
 ## Roadmap:
 
 - [x] extracts highlights and annotations from a doc file (e.g. using PyMuPDF)
-- [ ] puts those in the annotation file of a doc in a customizable format
+- [x] puts those in the annotation file of a doc in a customizable format
 - [x] option to have it automatically run after a file is added?
     - option to have it run whenever a pdf in the library was updated?
 - [ ] needs some way to delimit where it puts stuff and user stuff is in note
     - [ ] one way is to have it look at `> [17] here be extracted annotation from page seventeen` annotations and put it in between
     - [x] another, probably simpler first, is to just append missing annotations to the end of the note
-- [ ] some highlights (or annotations in general) do not contain text as content
-    - [ ] pymupdf can extract the content of the underlying rectangle (mostly)
-    - [ ] issue is that sometimes the highlight contents are in content, sometimes a user comment instead
-        - [ ] we could have a comparison function which estimates how 'close' the two text snippets are and act accordingly
-- [ ] config option to map colors in annotations to meaning ('read', 'important', 'extra') in pubs
-    - [ ] colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly
-- [ ] make invoking the command run a query if corresponding option provided (or whatever) in pubs syntax and use resulting papers
-    - [ ] confirm for many papers?
+- [x] some highlights (or annotations in general) do not contain text as content
+    - [x] pymupdf can extract the content of the underlying rectangle (mostly)
+    - [x] issue is that sometimes the highlight contents are in content, sometimes a user comment instead
+        - [x] we could have a comparison function which estimates how 'close' the two text snippets are and act accordingly -> using levenshtein distance
+- [x] config option to map colors in annotations to meaning ('read', 'important', 'extra') in pubs
+    - [x] colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly -> using euclidian distance
+    - [ ] support custom colors by setting a float tuple in configuration
+- [x] make invoking the command run a query if corresponding option provided (or whatever) in pubs syntax and use resulting papers
+    - [x] confirm for many papers?
 - [ ] warning when the amount of annotations in file is different than the amount extracted?
 
 ## Things that would also be nice in pubs in general and don't really belong in this repository
