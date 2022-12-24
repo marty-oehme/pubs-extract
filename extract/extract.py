@@ -2,8 +2,8 @@ import os
 import re
 import argparse
 import math
-from dataclasses import dataclass
-from typing import Tuple
+from dataclasses import dataclass, field
+from typing import Dict
 
 import fitz
 import Levenshtein
@@ -39,8 +39,8 @@ class Annotation:
     text: str = ""
     content: str = ""
     page: int = 1
-    colors: Tuple = (0.0, 0.0, 0.0)
-    tag: str = None
+    colors: Dict = field(default_factory=lambda: {"stroke": (0.0, 0.0, 0.0)})
+    tag: str = ""
 
     def formatted(self, formatting):
         output = formatting
@@ -51,25 +51,25 @@ class Annotation:
             r"{newline}": "\n",
             r"{tag}": self.tag,
         }
-        if self.text == "":
-            output = re.sub(r"{quote_begin}.*{quote_end}", "", output)
-        if self.content == "":
-            output = re.sub(r"{note_begin}.*{note_end}", "", output)
-        output = re.sub(r"{note_begin}", "", output)
-        output = re.sub(r"{note_end}", "", output)
-        output = re.sub(r"{quote_begin}", "", output)
-        output = re.sub(r"{quote_end}", "", output)
         pattern = re.compile(
             "|".join(
                 [re.escape(k) for k in sorted(replacements, key=len, reverse=True)]
             ),
             flags=re.DOTALL,
         )
+        patt_quote_container = re.compile(r"{%quote_container(.*?)%}")
+        patt_note_container = re.compile(r"{%note_container(.*?)%}")
+        patt_tag_container = re.compile(r"{%tag_container(.*?)%}")
+        output = patt_quote_container.sub(r"\1" if self.text else "", output)
+        output = patt_note_container.sub(r"\1" if self.content else "", output)
+        output = patt_tag_container.sub(r"\1" if self.tag else "", output)
         return pattern.sub(lambda x: replacements[x.group(0)], output)
 
     @property
     def colorname(self):
-        annot_colors = self.colors.get("stroke") or self.colors.get("fill")
+        annot_colors = (
+            self.colors.get("stroke") or self.colors.get("fill") or (0.0, 0.0, 0.0)
+        )
         nearest = None
         smallest_dist = 2.0
         for name, values in COLORS.items():
@@ -108,7 +108,7 @@ class ExtractPlugin(PapersPlugin):
         self.minimum_similarity = float(settings.get("minimum_similarity", 0.75))
         self.formatting = settings.get(
             "formatting",
-            "{newline}{quote_begin}> {quote} {quote_end}[{page}]{note_begin}{newline}Note: {note} {note_end} #{tag}",
+            "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}",
         )
         self.color_mapping = settings.get("color_mapping", {})
 
@@ -350,7 +350,9 @@ class ExtractPlugin(PapersPlugin):
         """
         existing = read_text_file(notepath)
         # removed annotations already found in the note
-        existing_dropped = [x for x in annotations if x.formatted(self.formatting) not in existing]
+        existing_dropped = [
+            x for x in annotations if x.formatted(self.formatting) not in existing
+        ]
         if not existing_dropped:
             return
 
