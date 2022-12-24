@@ -306,7 +306,7 @@ class ExtractPlugin(PapersPlugin):
                 # for annot in annotations:
                 output += f"{annotation.formatted(self.formatting)}\n"
                 output += "\n"
-        print(output)
+        self.ui.message(output)
 
     def _to_notes(self, annotated_papers, note_extension="txt", edit=False):
         """Write annotations into pubs notes.
