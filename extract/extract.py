@@ -1,11 +1,14 @@
 import os
 import re
 import argparse
+from dataclasses import dataclass
+from typing import Tuple
 
 import fitz
 import Levenshtein
 
 from pubs.plugins import PapersPlugin
+from pubs.paper import Paper
 from pubs.events import DocAddEvent, NoteEvent
 
 from pubs import repo, pretty
@@ -13,7 +16,45 @@ from pubs.utils import resolve_citekey_list
 from pubs.content import check_file, read_text_file, write_file
 from pubs.query import get_paper_filter
 
-CONFIRMATION_PAPER_THRESHOLD=5
+CONFIRMATION_PAPER_THRESHOLD = 5
+
+
+@dataclass
+class Annotation:
+    """A PDF annotation object"""
+
+    paper: Paper
+    file: str
+    type: str = "Highlight"
+    text: str = ""
+    content: str = ""
+    page: int = 1
+    colors: Tuple = (0.0, 0.0, 0.0)
+
+    def formatted(self, formatting):
+        output = formatting
+        replacements = {
+            r"{quote}": self.text,
+            r"{note}": self.content,
+            r"{page}": str(self.page),
+            r"{newline}": "\n",
+        }
+        if self.text == "":
+            output = re.sub(r"{quote_begin}.*{quote_end}", "", output)
+        if self.content == "":
+            output = re.sub(r"{note_begin}.*{note_end}", "", output)
+        output = re.sub(r"{note_begin}", "", output)
+        output = re.sub(r"{note_end}", "", output)
+        output = re.sub(r"{quote_begin}", "", output)
+        output = re.sub(r"{quote_end}", "", output)
+        pattern = re.compile(
+            "|".join(
+                [re.escape(k) for k in sorted(replacements, key=len, reverse=True)]
+            ),
+            flags=re.DOTALL,
+        )
+        return pattern.sub(lambda x: replacements[x.group(0)], output)
+
 
 class ExtractPlugin(PapersPlugin):
     """Extract annotations from any pdf document.
@@ -116,11 +157,12 @@ class ExtractPlugin(PapersPlugin):
         Returns all annotations belonging to the papers that
         are described by the citekeys passed in.
         """
-        papers_annotated = []
+        papers_annotated = {}
         for paper in papers:
             file = self._get_file(paper)
             try:
-                papers_annotated.append((paper, self._get_annotations(file)))
+                annotations = self._get_annotations(file, paper)
+                papers_annotated[paper.citekey] = annotations
             except fitz.FileDataError as e:
                 self.ui.error(f"Document {file} is broken: {e}")
         return papers_annotated
@@ -177,7 +219,7 @@ class ExtractPlugin(PapersPlugin):
             self.ui.warning(f"{paper.citekey} has no valid document.")
         return path
 
-    def _get_annotations(self, filename):
+    def _get_annotations(self, filename, paper):
         """Extract annotations from a file.
 
         Returns all readable annotations contained in the file
@@ -190,33 +232,17 @@ class ExtractPlugin(PapersPlugin):
                 for annot in page.annots():
                     quote, note = self._retrieve_annotation_content(page, annot)
                     annotations.append(
-                        self._format_annotation(quote, note, page.number or 0)
+                        Annotation(
+                            file=filename,
+                            paper=paper,
+                            text=quote,
+                            content=note,
+                            colors=annot.colors,
+                            type=annot.type,
+                            page=(page.number or 0) + 1,
+                        )
                     )
         return annotations
-
-    def _format_annotation(self, quote, note, pagenumber=0):
-        output = self.formatting
-        replacements = {
-            r"{quote}": quote,
-            r"{note}": note,
-            r"{page}": str(pagenumber),
-            r"{newline}": "\n",
-        }
-        if note == "":
-            output = re.sub(r"{note_begin}.*{note_end}", "", output)
-        if quote == "":
-            output = re.sub(r"{quote_begin}.*{quote_end}", "", output)
-        output = re.sub(r"{note_begin}", "", output)
-        output = re.sub(r"{note_end}", "", output)
-        output = re.sub(r"{quote_begin}", "", output)
-        output = re.sub(r"{quote_end}", "", output)
-        pattern = re.compile(
-            "|".join(
-                [re.escape(k) for k in sorted(replacements, key=len, reverse=True)]
-            ),
-            flags=re.DOTALL,
-        )
-        return pattern.sub(lambda x: replacements[x.group(0)], output)
 
     def _retrieve_annotation_content(self, page, annotation):
         """Gets the text content of an annotation.
@@ -249,13 +275,11 @@ class ExtractPlugin(PapersPlugin):
         ready to be passed on through pipelines etc.
         """
         output = ""
-        for contents in annotated_papers:
-            paper = contents[0]
-            annotations = contents[1]
-            if annotations:
-                output += f"------ {paper.citekey} ------\n"
-                for annot in annotations:
-                    output += f"{annot}\n"
+        for citekey, annotations in annotated_papers.items():
+            output += f"------ {citekey} ------\n"
+            for annotation in annotations:
+                # for annot in annotations:
+                output += f"{annotation.formatted(self.formatting)}\n"
                 output += "\n"
         print(output)
 
@@ -266,20 +290,18 @@ class ExtractPlugin(PapersPlugin):
         in the pubs notes directory. Creates new notes for
         citekeys missing a note or appends to existing.
         """
-        for contents in annotated_papers:
-            paper = contents[0]
-            annotations = contents[1]
+        for citekey, annotations in annotated_papers.items():
             if annotations:
-                notepath = self.broker.real_notepath(paper.citekey, note_extension)
+                notepath = self.broker.real_notepath(citekey, note_extension)
                 if check_file(notepath, fail=False):
                     self._append_to_note(notepath, annotations)
                 else:
                     self._write_new_note(notepath, annotations)
-                self.ui.info(f"Wrote annotations to {paper.citekey} note {notepath}.")
+                self.ui.info(f"Wrote annotations to {citekey} note {notepath}.")
 
                 if edit is True:
                     self.ui.edit_file(notepath, temporary=False)
-                NoteEvent(paper.citekey).send()
+                NoteEvent(citekey).send()
 
     def _write_new_note(self, notepath, annotations):
         """Create a new note containing the annotations.
@@ -289,7 +311,7 @@ class ExtractPlugin(PapersPlugin):
         """
         output = "# Annotations\n\n"
         for annotation in annotations:
-            output += f"{annotation}\n\n"
+            output += f"{annotation.formatted(self.formatting)}\n\n"
         write_file(notepath, output, "w")
 
     def _append_to_note(self, notepath, annotations):
@@ -300,13 +322,13 @@ class ExtractPlugin(PapersPlugin):
         """
         existing = read_text_file(notepath)
         # removed annotations already found in the note
-        existing_dropped = [x for x in annotations if x not in existing]
+        existing_dropped = [x for x in annotations if x.formatted(self.formatting) not in existing]
         if not existing_dropped:
             return
 
         output = ""
         for annotation in existing_dropped:
-            output += f"{annotation}\n\n"
+            output += f"{annotation.formatted(self.formatting)}\n\n"
         write_file(notepath, output, "a")
 
 
