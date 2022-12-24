@@ -12,7 +12,6 @@ from pubs import repo
 from pubs.utils import resolve_citekey_list
 from pubs.content import check_file, read_text_file, write_file
 
-
 class ExtractPlugin(PapersPlugin):
     """Extract annotations from any pdf document.
 
@@ -207,9 +206,9 @@ class ExtractPlugin(PapersPlugin):
             paper = contents[0]
             annotations = contents[1]
             if annotations:
-                output += f"------ {paper.citekey} ------\n\n"
+                output += f"------ {paper.citekey} ------\n"
                 for annot in annotations:
-                    output += f"{annot}\n\n"
+                    output += f"{annot}\n"
                 output += "\n"
         print(output)
 
