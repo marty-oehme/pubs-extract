@@ -18,6 +18,8 @@ from pubs.content import check_file, read_text_file, write_file
 from pubs.query import get_paper_filter
 
 CONFIRMATION_PAPER_THRESHOLD = 5
+TEXT_SIMILARITY_MINIMUM = 0.75
+COLOR_SIMILARITY_MINIMUM = 0.833
 
 COLORS = {
     "red": (1, 0, 0),
@@ -42,7 +44,13 @@ class Annotation:
     colors: Dict = field(default_factory=lambda: {"stroke": (0.0, 0.0, 0.0)})
     tag: str = ""
 
-    def formatted(self, formatting):
+    def format(self, formatting):
+        """Return a formatted string of the annotation.
+
+        Given a provided formatting pattern, this method returns the annotation
+        formatted with the correct marker replacements and removals, ready
+        for display or writing.
+        """
         output = formatting
         replacements = {
             r"{quote}": self.text,
@@ -67,17 +75,30 @@ class Annotation:
 
     @property
     def colorname(self):
+        """Return the stringified version of the annotation color.
+
+        Finds the closest named color to the annotation and returns it.
+        """
         annot_colors = (
             self.colors.get("stroke") or self.colors.get("fill") or (0.0, 0.0, 0.0)
         )
         nearest = None
-        smallest_dist = 2.0
+        minimum_similarity = COLOR_SIMILARITY_THRESHOLD
         for name, values in COLORS.items():
-            dist = math.dist([*values], [*annot_colors])
-            if dist < smallest_dist:
-                smallest_dist = dist
+            similarity_ratio = self._color_similarity_ratio(values, annot_colors)
+            if similarity_ratio > minimum_similarity:
+                minimum_similarity = similarity_ratio
                 nearest = name
         return nearest
+
+    def _color_similarity_ratio(self, color_one, color_two):
+        """Return the similarity of two colors between 0 and 1.
+
+        Takes two rgb color tuples made of floats between 0 and 1, e.g. (1, 0.65, 0) for orange,
+        and returns the similarity between them, with 1 being the same color and 0 being the
+        difference between full black and full white, as a float.
+        """
+        return 1 - (abs(math.dist([*color_one], [*color_two])) / 3)
 
 
 class ExtractPlugin(PapersPlugin):
@@ -105,7 +126,12 @@ class ExtractPlugin(PapersPlugin):
 
         settings = conf["plugins"].get("extract", {})
         self.on_import = settings.get("on_import", False)
-        self.minimum_similarity = float(settings.get("minimum_similarity", 0.75))
+        self.minimum_similarity = float(
+            settings.get("minimum_similarity", TEXT_SIMILARITY_MINIMUM)
+        )
+        self.minimum_color_similarity = float(
+            settings.get("minimum_color_similarity", COLOR_SIMILARITY_MINIMUM)
+        )
         self.formatting = settings.get(
             "formatting",
             "{%quote_container> {quote} %}[{page}]{%note_container{newline}Note: {note} %}{%tag_container #{tag}%}",
@@ -193,7 +219,7 @@ class ExtractPlugin(PapersPlugin):
         return papers_annotated
 
     def tag_from_colorname(self, colorname):
-        return self.color_mapping.get(colorname)
+        return self.color_mapping.get(colorname, "")
 
     def _gather_papers(self, conf, args):
         """Get all papers for citekeys.
@@ -307,7 +333,7 @@ class ExtractPlugin(PapersPlugin):
             output += f"------ {citekey} ------\n"
             for annotation in annotations:
                 # for annot in annotations:
-                output += f"{annotation.formatted(self.formatting)}\n"
+                output += f"{annotation.format(self.formatting)}\n"
                 output += "\n"
         self.ui.message(output)
 
@@ -339,7 +365,7 @@ class ExtractPlugin(PapersPlugin):
         """
         output = "# Annotations\n\n"
         for annotation in annotations:
-            output += f"{annotation.formatted(self.formatting)}\n\n"
+            output += f"{annotation.format(self.formatting)}\n\n"
         write_file(notepath, output, "w")
 
     def _append_to_note(self, notepath, annotations):
@@ -351,14 +377,14 @@ class ExtractPlugin(PapersPlugin):
         existing = read_text_file(notepath)
         # removed annotations already found in the note
         existing_dropped = [
-            x for x in annotations if x.formatted(self.formatting) not in existing
+            x for x in annotations if x.format(self.formatting) not in existing
         ]
         if not existing_dropped:
             return
 
         output = ""
         for annotation in existing_dropped:
-            output += f"{annotation.formatted(self.formatting)}\n\n"
+            output += f"{annotation.format(self.formatting)}\n\n"
         write_file(notepath, output, "a")
 
 
