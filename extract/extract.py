@@ -10,7 +10,12 @@ from pubs import repo, pretty
 from pubs.utils import resolve_citekey_list
 from pubs.content import check_file, read_text_file, write_file
 from pubs.query import get_paper_filter
-from .annotation import Annotation, COLOR_SIMILARITY_MINIMUM, TEXT_SIMILARITY_MINIMUM
+from .annotation import (
+    PaperAnnotated,
+    Annotation,
+    COLOR_SIMILARITY_MINIMUM,
+    TEXT_SIMILARITY_MINIMUM,
+)
 
 CONFIRMATION_PAPER_THRESHOLD = 5
 
@@ -34,6 +39,7 @@ class ExtractPlugin(PapersPlugin):
     def __init__(self, conf, ui):
         self.ui = ui
         self.note_extension = conf["main"]["note_extension"]
+        self.max_authors = conf["main"]["max_authors"]
         self.repository = repo.Repository(conf)
         self.pubsdir = os.path.expanduser(conf["main"]["pubsdir"])
         self.broker = self.repository.databroker
@@ -123,12 +129,12 @@ class ExtractPlugin(PapersPlugin):
         Returns all annotations belonging to the papers that
         are described by the citekeys passed in.
         """
-        papers_annotated = {}
+        papers_annotated = []
         for paper in papers:
             file = self._get_file(paper)
             try:
-                annotations = self._get_annotations(file, paper)
-                papers_annotated[paper.citekey] = annotations
+                annotations = self._get_annotations(file)
+                papers_annotated.append(PaperAnnotated.from_paper(paper, annotations))
             except fitz.FileDataError as e:
                 self.ui.error(f"Document {file} is broken: {e}")
         return papers_annotated
@@ -166,7 +172,7 @@ class ExtractPlugin(PapersPlugin):
             self.ui.message(
                 "\n".join(
                     pretty.paper_oneliner(
-                        p, citekey_only=False, max_authors=conf["main"]["max_authors"]
+                        p, citekey_only=False, max_authors=self.max_authors
                     )
                     for p in papers
                 )
@@ -188,7 +194,7 @@ class ExtractPlugin(PapersPlugin):
             self.ui.warning(f"{paper.citekey} has no valid document.")
         return path
 
-    def _get_annotations(self, filename, paper):
+    def _get_annotations(self, filename):
         """Extract annotations from a file.
 
         Returns all readable annotations contained in the file
@@ -202,7 +208,6 @@ class ExtractPlugin(PapersPlugin):
                     quote, note = self._retrieve_annotation_content(page, annot)
                     a = Annotation(
                         file=filename,
-                        paper=paper,
                         text=quote,
                         content=note,
                         colors=annot.colors,
@@ -237,18 +242,18 @@ class ExtractPlugin(PapersPlugin):
         # highlight with selection not in note
         return (written, "")
 
-    def _to_stdout(self, annotated_papers, short_header=True):
+    def _to_stdout(self, annotated_papers, short_header=False):
         """Write annotations to stdout.
 
         Simply outputs the gathered annotations over stdout
         ready to be passed on through pipelines etc.
         """
         output = ""
-        for citekey, annotations in annotated_papers.items():
+        for paper in annotated_papers:
             output += (
-                f"\n------ {annotations[0].headline(short=short_header)} ------\n\n"
+                f"\n------ {paper.headline(self.short_header, self.max_authors)} ------\n\n"
             )
-            for annotation in annotations:
+            for annotation in paper.annotations:
                 output += f"{annotation.format(self.formatting)}\n"
                 output += "\n"
         self.ui.message(output.strip())
@@ -260,31 +265,31 @@ class ExtractPlugin(PapersPlugin):
         in the pubs notes directory. Creates new notes for
         citekeys missing a note or appends to existing.
         """
-        for citekey, annotations in annotated_papers.items():
-            if annotations:
-                notepath = self.broker.real_notepath(citekey, note_extension)
+        for paper in annotated_papers:
+            if paper.annotations:
+                notepath = self.broker.real_notepath(paper.citekey, note_extension)
                 if check_file(notepath, fail=False):
-                    self._append_to_note(notepath, annotations)
+                    self._append_to_note(notepath, paper)
                 else:
-                    self._write_new_note(notepath, annotations, self.short_header)
-                self.ui.info(f"Wrote annotations to {citekey} note {notepath}.")
+                    self._write_new_note(notepath, paper, paper.headline(short=True, max_authors=self.max_authors))
+                self.ui.info(f"Wrote annotations to {paper.citekey} note {notepath}.")
 
                 if edit is True:
                     self.ui.edit_file(notepath, temporary=False)
-                NoteEvent(citekey).send()
+                NoteEvent(paper.citekey).send()
 
-    def _write_new_note(self, notepath, annotations, short_header):
+    def _write_new_note(self, notepath, paper, headline):
         """Create a new note containing the annotations.
 
         Will create a new note in the notes folder of pubs
         and fill it with the annotations extracted from pdf.
         """
-        output = f"# {annotations[0].headline(short=short_header)}\n\n"
-        for annotation in annotations:
+        output = f"# {headline}\n\n"
+        for annotation in paper.annotations:
             output += f"{annotation.format(self.formatting)}\n\n"
         write_file(notepath, output, "w")
 
-    def _append_to_note(self, notepath, annotations):
+    def _append_to_note(self, notepath, paper):
         """Append new annotations to the end of a note.
 
         Looks through note to determine any new annotations which should be
@@ -293,7 +298,7 @@ class ExtractPlugin(PapersPlugin):
         existing = read_text_file(notepath)
         # removed annotations already found in the note
         existing_dropped = [
-            x for x in annotations if x.format(self.formatting) not in existing
+            x for x in paper.annotations if x.format(self.formatting) not in existing
         ]
         if not existing_dropped:
             return

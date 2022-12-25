@@ -160,6 +160,7 @@ content, because then we can just use that. It is harder to parse if it does not
 - [ ] needs some way to delimit where it puts stuff and user stuff is in note
     - [ ] one way is to have it look at `> [17] here be extracted annotation from page seventeen` annotations and put it in between
     - [x] another, probably simpler first, is to just append missing annotations to the end of the note
+    - [ ] use similarity search instead of literal search for existing annotation (levenshtein)
 - [x] some highlights (or annotations in general) do not contain text as content
     - [x] pymupdf can extract the content of the underlying rectangle (mostly)
     - [x] issue is that sometimes the highlight contents are in content, sometimes a user comment instead

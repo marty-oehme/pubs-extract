@@ -19,11 +19,33 @@ COLORS = {
 }
 
 
+class PaperAnnotated(Paper):
+    def __init__(self, citekey, bibdata, metadata=None, annotations=[]):
+        super(PaperAnnotated, self).__init__(citekey, bibdata, metadata)
+        self.annotations = annotations
+
+    @classmethod
+    def from_paper(cls, paper, annotations=[]):
+        return cls(paper.citekey, paper.bibdata, paper.metadata, annotations)
+
+    def __repr__(self):
+        return "PaperAnnotated(%s, %s, %s)" % (
+            self.citekey,
+            self.bibdata,
+            self.metadata,
+        )
+
+    def headline(self, short=False, max_authors=3):
+        headline = pretty.paper_oneliner(
+            self, citekey_only=short, max_authors=max_authors
+        )
+        return re.sub(r"\[pdf\]", "", headline).rstrip()
+
+
 @dataclass
 class Annotation:
     """A PDF annotation object"""
 
-    paper: Paper
     file: str
     type: str = "Highlight"
     text: str = ""
@@ -78,12 +100,6 @@ class Annotation:
                 minimum_similarity = similarity_ratio
                 nearest = name
         return nearest
-
-    def headline(self, short=False, max_authors=3):
-        headline = pretty.paper_oneliner(
-            self.paper, citekey_only=short, max_authors=max_authors
-        )
-        return re.sub(r"\[pdf\]", "", headline).rstrip()
 
     def _color_similarity_ratio(self, color_one, color_two):
         """Return the similarity of two colors between 0 and 1.
