@@ -20,7 +20,17 @@ pipeline:
       - python --version && poetry --version
       - poetry build
     when:
-      branch: main
+      event: tag
+      tag: v*
+
+  release_prep:
+    image: python
+    commands:
+      - echo "----------------- preparing release ------------------"
+      - python tools/extract-changelog.py
+    when:
+      event: tag
+      tag: v*
 
   gitea_release:
     image: plugins/gitea-release
