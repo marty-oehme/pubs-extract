@@ -4,11 +4,20 @@ Quickly extract annotations from your pdf files with the help of the pubs biblio
 
 ## Installation:
 
-Still a bit painful since I have not set up any package management:
+You can install from pypi with `pip install pubs-extract`.
 
-Put `extract` folder in your pubs `plugs` directory.
+Or you install manually by moving the `extract` directory into your pubs `plugs` directory,
+so that the hierarchy is `pubs/plugs/extract/`
 
-Then add `extract` to your plugin list in the pubs configuration file.
+Then add `extract` to your plugin list in the pubs configuration file:
+
+```ini
+[plugins]
+active = extract
+```
+
+To check if everything is working you can do `pubs --help` which should show you the new extract command.
+You will be set up with the default options but if you want to change anything, read on in configuration below.
 
 ## Configuration:
 
@@ -141,7 +150,7 @@ Pull requests tackling one of these areas of course very welcome.
 
 ## Issues
 
-A note on the extraction. Highlights in pdfs are somewhat difficult to parse
+A note on the extraction. Highlights in pdfs can be somewhat difficult to parse
 (as are most things in them). Sometimes they contain the selected text that is written on the
 page, sometimes they contain the annotators thoughts as a note, sometimes they contain nothing.
 This plugin makes an effort to find the right combination and extract the written words,
@@ -149,7 +158,11 @@ as well as any additional notes made - but things *will* slip through or extract
 and again.
 
 The easiest extraction is provided if your program writes the selection itself into the highlight
-content, because then we can just use that. It is harder to parse if it does not.
+content, because then we can just use that. It is harder to parse if it does not and will sometimes
+get additional words in front or behind (especially if the highlight ends in the middle of a line)
+or even cut a few off.
+
+I am not sure if there is much I can do about this.
 
 ## Roadmap:
 
@@ -160,11 +173,12 @@ content, because then we can just use that. It is harder to parse if it does not
 - [ ] needs some way to delimit where it puts stuff and user stuff is in note
     - [ ] one way is to have it look at `> [17] here be extracted annotation from page seventeen` annotations and put it in between
     - [x] another, probably simpler first, is to just append missing annotations to the end of the note
-    - [ ] use similarity search instead of literal search for existing annotation (levenshtein)
+    - [ ] use similarity search instead of literal search for existing annotation (levenshtein)?
 - [x] some highlights (or annotations in general) do not contain text as content
     - [x] pymupdf can extract the content of the underlying rectangle (mostly)
     - [x] issue is that sometimes the highlight contents are in content, sometimes a user comment instead
         - [x] we could have a comparison function which estimates how 'close' the two text snippets are and act accordingly -> using levenshtein distance
+    - [ ] sometimes the underyling rectangle is empty too, what to do then? discard annotation?
 - [x] config option to map colors in annotations to meaning ('read', 'important', 'extra') in pubs
     - [x] colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly -> using euclidian distance
     - [ ] support custom colors by setting a float tuple in configuration
@@ -172,37 +186,3 @@ content, because then we can just use that. It is harder to parse if it does not
     - [x] confirm for many papers?
 - [ ] warning when the amount of annotations in file is different than the amount extracted?
 - [ ] tests tests tests tests tests, lah-di-dah
-
-## Things that would also be nice in pubs in general and don't really belong in this repository
-
-- `show` command which simply displays given entry in a nice way
-    - could take multiple entries but present them all in the same larger way
-    - a metadata command which shows the metadata connected to an entry (e.g. `show --meta`)
-- XDG compliance
-    - a way to insert env vars into the configuration paths
-    - looking in XDG_CONFIG_HOME and XDG_DATA_HOME by default
-    - accepting env vars for overriding the directories
-- isbn import re-enabled with -> `api.paperpile.com/api/public/convert`
-    - example request: `curl -X POST -d '{"fromIds":true,"input":"9780816530441","targetFormat":"Bibtex"}' -H "Content-Type: application/json" https://api.paperpile.com/api/public/convert`
-    - example reponse: `{"output":"@BOOK{Igoe2017-cu,\n  title     = \"The nature of spectacle\",\n  author    = \"Igoe, James\",\n  publisher = \"University of Arizona Press\",\n  series    = \"Critical Green Engagements: Investigating the Green Economy and\n               its Alternatives\",\n  month     =  jun,\n  year      =  2017,\n  address   = \"Tucson, AZ\",\n  language  = \"en\"\n}\n","token":"3ca6b666-2b9d-4962-8017-a0c8f1f86bfd","tags":[],"withErrors":false}`
-- side-by-side command to open annotation file and document at the same time
-- fzf-mode/bemenu mode to look through documents
-- batch-edit? a way to quickly modify items matching a query, e.g. removing file entry for all those from year:2022 or whatever
-- link related items
-    - a special tag?
-    - building relationships: two-way (related, e.g. same working paper), or single direction, e.g. a re-print, a compendium, etc
-    - should still always be traceable from both sides
-- automatically keeping a main bibtex file up-to-date
-    - can be done through the `export` command, e.g. as a git hook when the repo is updated
-- better git commit names for git plugin
-- more direct linking to individual annotations
-    - e.g. you have an annotation on page 17, allow opening that page from there and vice versa
-    - can use e.g. existing markdown quote pattern:
-      > [17] To be or not to be blabla
-      which would then open page 17 in the document
-    - makes most sense as plugin probably (which also allows setting the pattern by which it finds citations in the notes)
-- fuzzy matching
-    - either by default, as a config setting or with the ~prefix
-- why are we doing tags in metadata not in the bibtex files?
-- default replacement bibkey for files which are missing part of what makes it up
-    - e.g. if you use {authorname}{year} as bibkey, a file missing author would substitute with this
