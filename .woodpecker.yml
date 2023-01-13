@@ -1,0 +1,47 @@
+branches: main
+
+pipeline:
+  code_lint:
+    image: python
+    commands:
+      - pip install poetry
+      - poetry install
+      - pip install black
+      - echo "----------------- running lint ------------------"
+      - python --version && poetry --version && black --version
+      - poetry run black .
+
+  build_dist:
+    image: python
+    commands:
+      - pip install poetry
+      - poetry install
+      - echo "----------------- running analysis ------------------"
+      - python --version && poetry --version
+      - poetry build
+    when:
+      branch: main
+
+  gitea_release:
+    image: plugins/gitea-release
+    settings:
+      api_key:
+        from_secret: gitea_release_token
+      base_url: https://git.martyoeh.me
+      files: dist/*
+      title: NEWEST_VERSION.md
+      note: NEWEST_CHANGES.md
+    when:
+      event: tag
+      tag: v*
+
+  pypi_release:
+    image: python
+    commands:
+      - pip install poetry
+      - poetry install
+      - echo "----------------- publishing to pypi ------------------"
+      - poetry publish --username "$PYPI_USERNAME" --password "$PYPI_PASSWORD"
+    when:
+      event: tag
+      tag: v*
