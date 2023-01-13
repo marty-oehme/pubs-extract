@@ -250,9 +250,7 @@ class ExtractPlugin(PapersPlugin):
         """
         output = ""
         for paper in annotated_papers:
-            output += (
-                f"\n------ {paper.headline(self.short_header, self.max_authors)} ------\n\n"
-            )
+            output += f"\n------ {paper.headline(self.short_header, self.max_authors)} ------\n\n"
             for annotation in paper.annotations:
                 output += f"{annotation.format(self.formatting)}\n"
                 output += "\n"
@@ -271,7 +269,11 @@ class ExtractPlugin(PapersPlugin):
                 if check_file(notepath, fail=False):
                     self._append_to_note(notepath, paper)
                 else:
-                    self._write_new_note(notepath, paper, paper.headline(short=True, max_authors=self.max_authors))
+                    self._write_new_note(
+                        notepath,
+                        paper,
+                        paper.headline(short=True, max_authors=self.max_authors),
+                    )
                 self.ui.info(f"Wrote annotations to {paper.citekey} note {notepath}.")
 
                 if edit is True:
