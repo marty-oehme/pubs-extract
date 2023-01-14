@@ -1,6 +1,7 @@
 # pubs-extract
 
 [![status-badge](https://ci.martyoeh.me/api/badges/Marty/pubs-extract/status.svg)](https://ci.martyoeh.me/Marty/pubs-extract)
+![PyPI](https://img.shields.io/pypi/v/pubs-extract)
 
 Quickly extract annotations from your pdf files with the help of the pubs bibliography manager.
 Easily organize your highlights and thoughts next to your documents.
