@@ -126,19 +126,20 @@ the annotations. If a note already exists for any of the entries, it will instea
 the annotations to the end of it, dropping all those that it already finds in the note
 (essentially only adding new annotations to the end).
 
-**PLEASE** Be aware that so far, I spent a single afternoon coding this plugin, it
-contains no tests and operates on your notes. In my use nothing too bad happened but
-only use it with adequate backup in place, or with your library being version controlled.
+**PLEASE** Heed the note above and exercise caution with the `-w` option. It is
+not intended to be destructive, but nevertheless create backups or version
+control your files.
 
-You can invoke the command with `-e` to instantly edit the notes:
+You can invoke the command with `-e` to instantly edit the notes in your editor:
 
 ```bash
 pubs extract -w -e Bayat2015 Peck2004
 ```
 
-Will create/append annotations and drop you into the Bayat2015 note, when you close it
-directly into the Peck2004 note. Take care that it will be fairly annoying if you use this
-option with hundreds of entries being annotated.
+Will create/append annotations and drop you into the Bayat2015 note, when you
+close it directly into the Peck2004 note. Take care that it will be fairly
+annoying if you use this option with hundreds of entries being annotated as it
+will open one entry after another for editing.
 
 To extract the annotations for all your existing entries in one go, you can use:
 
