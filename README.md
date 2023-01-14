@@ -1,6 +1,9 @@
 # pubs-extract
 
+[![status-badge](https://ci.martyoeh.me/api/badges/Marty/pubs-extract/status.svg)](https://ci.martyoeh.me/Marty/pubs-extract)
+
 Quickly extract annotations from your pdf files with the help of the pubs bibliography manager.
+Easily organize your highlights and thoughts next to your documents.
 
 ## Installation:
 
@@ -18,6 +21,9 @@ active = extract
 
 To check if everything is working you can do `pubs --help` which should show you the new extract command.
 You will be set up with the default options but if you want to change anything, read on in configuration below.
+
+> **Note**
+> This plugin is in fairly early development. It does what I need it to do, but if you have a meticulously organized library *please* make backups before doing any operation on your notes, or make use of the pubs-included git plugin.
 
 ## Configuration:
 
@@ -150,7 +156,7 @@ Pull requests tackling one of these areas of course very welcome.
 
 ## Issues
 
-A note on the extraction. Highlights in pdfs can be somewhat difficult to parse
+A note on the extraction: Highlights in pdfs can be somewhat difficult to parse
 (as are most things in them). Sometimes they contain the selected text that is written on the
 page, sometimes they contain the annotators thoughts as a note, sometimes they contain nothing.
 This plugin makes an effort to find the right combination and extract the written words,
@@ -164,25 +170,12 @@ or even cut a few off.
 
 I am not sure if there is much I can do about this.
 
-## Roadmap:
+---
 
-- [x] extracts highlights and annotations from a doc file (e.g. using PyMuPDF)
-- [x] puts those in the annotation file of a doc in a customizable format
-- [x] option to have it automatically run after a file is added?
-    - option to have it run whenever a pdf in the library was updated?
-- [ ] needs some way to delimit where it puts stuff and user stuff is in note
-    - [ ] one way is to have it look at `> [17] here be extracted annotation from page seventeen` annotations and put it in between
-    - [x] another, probably simpler first, is to just append missing annotations to the end of the note
-    - [ ] use similarity search instead of literal search for existing annotation (levenshtein)?
-- [x] some highlights (or annotations in general) do not contain text as content
-    - [x] pymupdf can extract the content of the underlying rectangle (mostly)
-    - [x] issue is that sometimes the highlight contents are in content, sometimes a user comment instead
-        - [x] we could have a comparison function which estimates how 'close' the two text snippets are and act accordingly -> using levenshtein distance
-    - [ ] sometimes the underyling rectangle is empty too, what to do then? discard annotation?
-- [x] config option to map colors in annotations to meaning ('read', 'important', 'extra') in pubs
-    - [x] colors are given in very exact 0.6509979 RGB values, meaning we could once again estimate if a color is 'close enough' in distance to tag it accordingly -> using euclidian distance
-    - [ ] support custom colors by setting a float tuple in configuration
-- [x] make invoking the command run a query if corresponding option provided (or whatever) in pubs syntax and use resulting papers
-    - [x] confirm for many papers?
-- [ ] warning when the amount of annotations in file is different than the amount extracted?
-- [ ] tests tests tests tests tests, lah-di-dah
+If you spot a bug or have an idea feel free to open an issue.\
+I might be slow to respond but will consider them all!
+
+Pull requests are warmly welcomed.\
+If they are big changes or additions let's talk about them in an issue first.
+
+Thanks for using my software ❤️
