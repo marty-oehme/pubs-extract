@@ -32,6 +32,18 @@ pipeline:
       event: tag
       tag: v*
 
+  pypi_release:
+    image: python
+    commands:
+      - pip install poetry
+      - poetry install
+      - echo "----------------- publishing to pypi ------------------"
+      - poetry publish --username "$PYPI_USERNAME" --password "$PYPI_PASSWORD"
+    secrets: [ pypi_username, pypi_password ]
+    when:
+      event: tag
+      tag: v*
+
   gitea_release:
     image: plugins/gitea-release
     settings:
@@ -45,14 +57,14 @@ pipeline:
       event: tag
       tag: v*
 
-  pypi_release:
-    image: python
-    commands:
-      - pip install poetry
-      - poetry install
-      - echo "----------------- publishing to pypi ------------------"
-      - poetry publish --username "$PYPI_USERNAME" --password "$PYPI_PASSWORD"
-    secrets: [ pypi_username, pypi_password ]
+  github_release:
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_release_token
+      files: dist/*
+      title: NEWEST_VERSION.md
+      note: NEWEST_CHANGES.md
     when:
       event: tag
       tag: v*
