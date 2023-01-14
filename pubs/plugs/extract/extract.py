@@ -225,7 +225,8 @@ class ExtractPlugin(PapersPlugin):
         that is only the written words, sometimes that is only
         annotation notes, sometimes it is both. Runs a similarity
         comparison between strings to find out whether they
-        should both be included or are doubling up.
+        should both be included or are doubling up, using
+        Levenshtein distance.
         """
         content = annotation.info["content"].replace("\n", " ")
         written = page.get_textbox(annotation.rect).replace("\n", " ")

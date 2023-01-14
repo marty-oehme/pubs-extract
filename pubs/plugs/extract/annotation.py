@@ -87,7 +87,8 @@ class Annotation:
     def colorname(self):
         """Return the stringified version of the annotation color.
 
-        Finds the closest named color to the annotation and returns it.
+        Finds the closest named color to the annotation and returns it,
+        using euclidian distance between the two color vectors.
         """
         annot_colors = (
             self.colors.get("stroke") or self.colors.get("fill") or (0.0, 0.0, 0.0)
